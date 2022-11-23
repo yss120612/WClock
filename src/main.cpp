@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include "MEMTask.h"
 #include "IRTask.h"
 #include "LEDTask.h"
 #include "ENCTask.h"
@@ -11,11 +12,7 @@
 
 
 
-#define LEDR GPIO_NUM_32
-#define LEDB GPIO_NUM_33
-
-
-
+MEMTask * mem;
 IRTask * irt;
 LEDTask * leds;
 ENCTask * enc;
@@ -47,7 +44,7 @@ void setup() {
 
 
 //bme.init();
-queue= xQueueCreate(16,sizeof(uint32_t));
+queue= xQueueCreate(16,sizeof(event_t));
 btn_semaphore=xSemaphoreCreateBinary();
 flags=xEventGroupCreate();
 message=xMessageBufferCreate(100);
@@ -55,6 +52,9 @@ message=xMessageBufferCreate(100);
 
 attachInterrupt(digitalPinToInterrupt(ENCBTN),btnISR,CHANGE);
 attachInterrupt(digitalPinToInterrupt(ENCS1),encISR,RISING);
+
+mem= new MEMTask("Memory",2048,queue);  
+mem->resume();
 
 irt= new IRTask("IR",2048,queue);  
 irt->resume();
@@ -103,6 +103,31 @@ void setAlarm(uint8_t no, uint8_t m,uint8_t h=25, bool retry=true, uint8_t wd=10
 
 }
 
+
+String getI2Cdevices(){
+    int error;
+	String res="I2C device found at address<ul>";
+	
+	
+	uint8_t count=0;
+    for (uint8_t address = 1; address < 127; address++ )  {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0)    {
+		res+="<li>";
+		res+=String(address,16);
+		res+="</li>";
+		count++;
+      
+    }
+    }
+    res+="<li><b>Ttal devices ";
+	res+=String(count);
+	res+="</b></li></ul>";
+	return res;
+}
+
+
 void loop() {
   uint32_t command;
 if (xQueueReceive(queue,&command,portMAX_DELAY))
@@ -120,12 +145,13 @@ if (xQueueReceive(queue,&command,portMAX_DELAY))
 
 
       case 51:Serial.println("1 click");break;  
-      case 52:Serial.println("2 click");break;  
+      case 52:Serial.println("2 click");
+      Serial.println(getI2Cdevices());
+      break;  
       case 53:
       {
         Serial.println("3 click");
         setAlarm(1,50);
-        
       };
       break;  
       case 54:Serial.println("4 click");break;  

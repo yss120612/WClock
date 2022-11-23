@@ -3,8 +3,9 @@
 #include "Task.h"
 #include <IRremoteESP8266.h>
 #include <IRrecv.h>
+#include "Settings.h"
+#include "Events.h"
 
-#define IR_PIN GPIO_NUM_4
 
 class IRTask: public Task{
 public:    
@@ -17,9 +18,7 @@ void loop() override;
 QueueHandle_t que;
 IRrecv * irrecv;
 decode_results dres;
-    
-
-
+uint32_t old_command;    
 };
 
 

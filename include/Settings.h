@@ -16,6 +16,16 @@ static const char dayofweek[] = "SunMonTueWedThuFriSat";
 
 enum flags_t : uint8_t { FLAG_WIFI = 1, FLAG_MQTT = 2 };
 
+#define IR_PIN GPIO_NUM_4 //pin for IR receiver
+#define IR_DEVICE 162
+
+#define  AT24C32_ADDRESS 0x57
+#define  AT24C32_OFFSET 0x78
+#define  EEPROM_PAGE_SIZE  32
+#define  EEPROM_WORK_SIZE  EEPROM_PAGE_SIZE / 2
+#define  EEPROM_WRITE_TIMEOUT  10
+
+
 void static readPacket(uint32_t container, uint8_t * btn, uint8_t * value, uint16_t * data){
     *btn   = (container >> 24) & 0x000000FF;
     *value = (container >> 16) & 0x000000FF;
