@@ -21,19 +21,13 @@ HTTPTask * http;
 RTCTask * rtc;
 QueueHandle_t queue;
 BMP280Task * bmp280;
-SemaphoreHandle_t btn_semaphore, enc_semaphore;
+
 EventGroupHandle_t flags;
 MessageBufferHandle_t message;
 
 
 
-void IRAM_ATTR btnISR(){
-  xSemaphoreGiveFromISR(btn_semaphore,NULL);
-}
 
-void IRAM_ATTR encISR(){
-  xSemaphoreGiveFromISR(btn_semaphore,NULL);
-}
 
 
 void setup() {
@@ -45,37 +39,37 @@ void setup() {
 
 //bme.init();
 queue= xQueueCreate(16,sizeof(event_t));
-btn_semaphore=xSemaphoreCreateBinary();
+
 flags=xEventGroupCreate();
 message=xMessageBufferCreate(100);
 
 
-attachInterrupt(digitalPinToInterrupt(ENCBTN),btnISR,CHANGE);
-attachInterrupt(digitalPinToInterrupt(ENCS1),encISR,RISING);
 
 mem= new MEMTask("Memory",2048,queue);  
 mem->resume();
-
+delay(100);
 irt= new IRTask("IR",2048,queue);  
 irt->resume();
-
+delay(100);
+rtc = new RTCTask("rtc",4096,flags,queue,message);
+rtc->resume();
+delay(100);
+bmp280= new BMP280Task("BMP280",2048);  
+bmp280->resume();
+delay(100);
 leds = new LEDTask("Leds",3072,queue,LOW);
 leds->resume();
-
-enc = new ENCTask("Encoder",2048,queue,btn_semaphore,LOW);
+delay(100);
+enc = new ENCTask("Encoder",2048,queue,LOW);
 enc->resume();
-
+delay(100);
 wifi = new WiFiTask("WiFi",8192,queue,flags);
 wifi->resume();
-
+delay(100);
 http = new HTTPTask("http",8192,queue,flags);
 http->resume();
 
-rtc = new RTCTask("rtc",4096,flags,queue,message);
-rtc->resume();
 
-bmp280= new BMP280Task("BMP280",2048);  
-bmp280->resume();
 
 
 //leds->setup();
@@ -103,7 +97,6 @@ void setAlarm(uint8_t no, uint8_t m,uint8_t h=25, bool retry=true, uint8_t wd=10
 
 }
 
-
 String getI2Cdevices(){
     int error;
 	String res="I2C device found at address<ul>";
@@ -127,73 +120,132 @@ String getI2Cdevices(){
 	return res;
 }
 
+void encoder_event(event_t e){
+switch(e.data){
+  case 1:
+    Serial.println("encoder clock");
+  break;
+  case 2:
+    Serial.println("encoder unclock");
+  break;
+}
+}
+
+void btn_event(event_t e){
+  switch (e.state){
+    case BTN_CLICK:
+    Serial.print("multiclick:");
+      Serial.print(e.count);
+      Serial.println(" click");
+    if (e.count==3) Serial.println(getI2Cdevices());
+    break;
+    case BTN_LONGCLICK:
+      Serial.print("longclick after");
+      Serial.print(e.count);
+      Serial.println(" click");
+      if (e.count==5) ESP.restart();
+    break;
+  }
+}
+
+void pult_event(event_t e){
+switch(e.button){
+  case 17:leds->notify(e.button);break;  
+  case 18:leds->notify(e.button);break;  
+  case 19:leds->notify(e.button);break;  
+  case 20:leds->notify(e.button);break;  
+  case 8:leds->notify(e.button);break;  
+  case 67:bmp280->notify(e.button);break;  
+  case 23:leds->notify(e.button);break;  
+  case 24:leds->notify(e.button);break;  
+  case 25:leds->notify(e.button);break; 
+}
+}
+
+
 
 void loop() {
-  uint32_t command;
-if (xQueueReceive(queue,&command,portMAX_DELAY))
+  event_t ev;
+if (xQueueReceive(queue,&ev,portMAX_DELAY))
 {
-  switch(command){
-    case 17:leds->notify(command);break;  
-     case 18:leds->notify(command);break;  
-     case 19:leds->notify(command);break;  
-      case 20:leds->notify(command);break;  
-      case 8:leds->notify(command);break;  
-      case 23:leds->notify(command);break;  
-      case 24:leds->notify(command);break;  
-      case 25:leds->notify(command);break; 
-      //case 30:ntp->notify(command);break; 
-
-
-      case 51:Serial.println("1 click");break;  
-      case 52:Serial.println("2 click");
-      Serial.println(getI2Cdevices());
-      break;  
-      case 53:
-      {
-        Serial.println("3 click");
-        setAlarm(1,50);
-      };
-      break;  
-      case 54:Serial.println("4 click");break;  
-      case 55:Serial.println("5 click");break;  
-
-      case 71:Serial.println("encoder clock");break;  
-      case 72:Serial.println("encoder unclock");break;  
-
-
-      case 91:Serial.println("longclick after 1 click");break;  
-      case 92:Serial.println("longclick after 2 click");break;  
-      case 93:Serial.println("longclick after 3 click");break;  
-      case 94:Serial.println("longclick after 4 click");break;  
-      case 95:Serial.println("longclick after 5 click");break;  
-
-      case 111:
-        leds->notify(command);
-      break;  
-      case 112:
-        leds->notify(command);
-      break;  
-      case 113:
-        leds->notify(command);
-        break;
-      case 700:
-      case 701:
-      case 702:
-      case 703:
-      {
-        Serial.printf("Alarm !!!! %d alarm\n", command-700);
-        leds->notify(33);
-      } 
-      break; 
-      case 800:
-      {
-        Serial.printf("begin update\n");
-        leds->notify(33);
-      } 
-      break; 
-
+  switch (ev.state){
+    case ENCODER_EVENT:
+    encoder_event(ev);
+    break;
+    case BTN_CLICK:
+    case BTN_LONGCLICK:
+    btn_event(ev);
+    break;
+    case PULT_BUTTON:
+      pult_event(ev);
+    break;
   }
+  // switch(ev.button){
+  //   case 17:leds->notify(ev.button);break;  
+  //    case 18:leds->notify(ev.button);break;  
+  //    case 19:leds->notify(ev.button);break;  
+  //     case 20:leds->notify(ev.button);break;  
+  //     case 8:leds->notify(ev.button);break;  
+  //     case 67:bmp280->notify(ev.button);break;  
+  //     case 23:leds->notify(ev.button);break;  
+  //     case 24:leds->notify(ev.button);break;  
+  //     case 25:leds->notify(ev.button);break; 
+  //     //case 30:ntp->notify(command);break; 
+
+
+  //     case 51:Serial.println("1 click");break;  
+  //     case 52:Serial.println("2 click");
+  //     Serial.println(getI2Cdevices());
+  //     break;  
+  //     case 53:
+  //     {
+  //       Serial.println("3 click");
+  //       setAlarm(1,50);
+  //     };
+  //     break;  
+  //     case 54:Serial.println("4 click");break;  
+  //     case 55:Serial.println("5 click");break;  
+
+  //     case 71:Serial.println("encoder clock");break;  
+  //     case 72:Serial.println("encoder unclock");break;  
+
+
+  //     case 91:Serial.println("longclick after 1 click");break;  
+  //     case 92:Serial.println("longclick after 2 click");break;  
+  //     case 93:Serial.println("longclick after 3 click");break;  
+  //     case 94:Serial.println("longclick after 4 click");break;  
+  //     case 95:Serial.println("longclick after 5 click");break;  
+
+  //     case 111:
+  //       leds->notify(ev.button);
+  //     break;  
+  //     case 112:
+  //       leds->notify(ev.button);
+  //     break;  
+  //     case 113:
+  //       leds->notify(ev.button);
+  //       break;
+  //     case 700:
+  //     case 701:
+  //     case 702:
+  //     case 703:
+  //     {
+  //       Serial.printf("Alarm !!!! %d alarm\n", ev.button-700);
+  //       leds->notify(33);
+  //     } 
+  //     break; 
+  //     case 800:
+  //     {
+  //       Serial.printf("begin update\n");
+  //       leds->notify(33);
+  //     } 
+  //     break; 
+
+  // }
 
 }
+
+
 // put your main code here, to run repeatedly:
 }
+

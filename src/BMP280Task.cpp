@@ -19,7 +19,7 @@ if (xTaskNotifyWait(0, 0, &command, portMAX_DELAY))
   {
     switch (command)
     {
-    case 22:
+    case 67:
      Serial.print(F("Temperature = "));
     Serial.print(bmp->readTemperature());
     Serial.println(" *C");
