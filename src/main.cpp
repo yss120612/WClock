@@ -132,12 +132,21 @@ switch(e.data){
 }
 
 void btn_event(event_t e){
+  uint32_t cmd;
   switch (e.state){
     case BTN_CLICK:
-    Serial.print("multiclick:");
+      Serial.print("multiclick:");
       Serial.print(e.count);
       Serial.println(" click");
+    if(e.count==5) {
+     cmd= makePacket(11,22,55);
+     rtc->notify(cmd);
+    } 
     if (e.count==3) Serial.println(getI2Cdevices());
+    if (e.count==4) {
+      cmd= makePacket(67,0,0);
+      bmp280->notify(cmd);}
+      break;;
     break;
     case BTN_LONGCLICK:
       Serial.print("longclick after");
@@ -147,6 +156,23 @@ void btn_event(event_t e){
     break;
   }
 }
+
+
+void rtc_event(event_t e){
+  uint32_t cmd;
+  switch (e.button){
+    case 99:
+      uint8_t h=(e.data>>16) & 0x00FF;
+      uint8_t m=e.data & 0x00FF;
+      Serial.print("Event Alarm 2 at - ");
+      Serial.print(h);
+      Serial.print(":");
+      Serial.println(m);
+      Serial.println(e.data);
+    break;
+  }
+} 
+
 
 void pult_event(event_t e){
 switch(e.button){
@@ -178,6 +204,9 @@ if (xQueueReceive(queue,&ev,portMAX_DELAY))
     break;
     case PULT_BUTTON:
       pult_event(ev);
+    break;
+    case RTC_EVENT:
+      rtc_event(ev);
     break;
   }
   // switch(ev.button){

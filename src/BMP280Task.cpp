@@ -14,10 +14,15 @@ void BMP280Task::cleanup(){
 
 
 void BMP280Task::loop(){
+    
+    uint16_t data;
+    uint8_t act,cmd;
     uint32_t command;
-if (xTaskNotifyWait(0, 0, &command, portMAX_DELAY))
+    
+  if (xTaskNotifyWait(0, 0, &command, portMAX_DELAY))
   {
-    switch (command)
+    readPacket(command,&cmd,&act,&data);
+    switch (cmd)
     {
     case 67:
      Serial.print(F("Temperature = "));

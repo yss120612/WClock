@@ -25,6 +25,7 @@ protected:
     //void setLedMode(uint8_t ledN, blinkmode_t bm);
     void alarm(uint8_t hh,uint8_t mm);
     void alarm(uint8_t hh,uint8_t mm,uint8_t dw);
+    void alarmFired(uint8_t aNo);
     bool update_time_from_inet();
     void cleanup() override;
     void setup() override;

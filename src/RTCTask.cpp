@@ -15,13 +15,42 @@ delete rtc;
 }
 
 void RTCTask::alarm(uint8_t hh,uint8_t mm){
-
+  DateTime dt(2022,1,1,hh,mm,0);
+  Serial.print("Set Alarm 2 to - ");
+  Serial.print(hh);
+  Serial.print(":");
+  Serial.println(mm);
+  
+  
+  rtc->setAlarm2(dt,DS3231_A2_Hour);
 }
 
 void RTCTask::alarm(uint8_t hh,uint8_t mm,uint8_t dw){
 
 }
 
+
+void RTCTask::alarmFired(uint8_t an){
+rtc->clearAlarm(an);
+DateTime dt;
+if (an==1){
+//Serial.println("Alarm 1 fired");
+}else if(an==2){
+
+dt=rtc->getAlarm2();
+
+event_t ev;
+ev.state=RTC_EVENT;
+ev.button=99;
+uint32_t h1=dt.hour();
+ev.data=(h1<<16) & 0xFF00 | dt.minute() & 0x00FF;
+// TimeSpan ts(0,0,3,0);
+// DateTime dt1=dt+
+Serial.println(ev.data);
+alarm(dt.hour(),dt.minute()+3);
+xQueueSend(que,&ev,portMAX_DELAY);
+}
+}
 
 void RTCTask::loop()
 {
@@ -32,7 +61,12 @@ void RTCTask::loop()
         uint16_t data;
         readPacket(command, &comm, &act, &data);
         switch (comm)
+        
         {
+          case 11:
+        
+          alarm(act,data);
+          break;
         case 10:
             char buf[100];
             size_t si;
@@ -50,7 +84,13 @@ void RTCTask::loop()
         }
     }
 
-    
+if (rtc->alarmFired(1)){
+alarmFired(1);
+}
+if (rtc->alarmFired(2)){
+alarmFired(2);
+}  
+
 if (xEventGroupWaitBits(flg, FLAG_WIFI, pdFALSE, pdTRUE, portMAX_DELAY) & FLAG_WIFI) {    
 unsigned long t= millis();    
 if (t < last_sync) last_sync=t;

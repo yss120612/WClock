@@ -10,8 +10,10 @@
 //const char WIFI_SSID[] = "Lite5G";
 //const char WIFI_PSWD[] = "qweasdzxc";
 
-const char WIFI_SSID[] = "Yss_GIGA";
-const char WIFI_PSWD[] = "bqt3bqt3";
+//const char WIFI_SSID[] = "Yss_GIGA";
+//const char WIFI_PSWD[] = "bqt3bqt3";
+const char WIFI_SSID[] = "MikroTik-2";
+const char WIFI_PSWD[] = "89833332212";
 
 
 
