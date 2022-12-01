@@ -25,8 +25,17 @@ void RTCTask::alarm(uint8_t hh,uint8_t mm){
   rtc->setAlarm2(dt,DS3231_A2_Hour);
 }
 
+//dw 6 суббота. 0 понедельник 1 вторник ...
 void RTCTask::alarm(uint8_t hh,uint8_t mm,uint8_t dw){
+ DateTime dt(0,dw+2,1,hh,mm,0);
+  Serial.print("Set Alarm 2 to day:");
+  Serial.print(dw);
+  Serial.print(" at time ");
 
+  Serial.print(hh);
+  Serial.print(":");
+  Serial.println(mm);
+ rtc->setAlarm2(dt,DS3231_A2_Day);
 }
 
 
@@ -41,11 +50,14 @@ dt=rtc->getAlarm2();
 
 event_t ev;
 ev.state=RTC_EVENT;
+if(rtc->getAlarm2Mode()==DS3231_A2_Hour)
+{
 ev.button=99;
-uint32_t h1=dt.hour();
-ev.data=(h1<<16) & 0xFF00 | dt.minute() & 0x00FF;
-// TimeSpan ts(0,0,3,0);
-// DateTime dt1=dt+
+}
+else{
+  ev.button=dt.dayOfTheWeek();
+}
+ev.data=(dt.hour()<<24) & 0xFF000000 | (dt.minute() <<16) & 0x00FF0000;
 Serial.println(ev.data);
 alarm(dt.hour(),dt.minute()+3);
 xQueueSend(que,&ev,portMAX_DELAY);
@@ -59,15 +71,22 @@ void RTCTask::loop()
     {
         uint8_t comm, act;
         uint16_t data;
+        uint8_t h; 
+        uint8_t m;
+        uint8_t d;  
         readPacket(command, &comm, &act, &data);
         switch (comm)
         
         {
           case 11:
-        
-          alarm(act,data);
+          h = (data >>24) & 0x000000FF; 
+          m = (data >>16) & 0x000000FF;
+          d = data & 0x000000FF;  
+          if (d>=7) alarm(h,m);
+          else alarm(h,m,d); 
           break;
-        case 10:
+        case 10:{
+
             char buf[100];
             size_t si;
             int res;
@@ -80,7 +99,7 @@ void RTCTask::loop()
               res = snprintf(buf, sizeof(buf), "Time %d:%02d:%02d*Date %d-%02d-%d*%s", dt.hour(),dt.minute(),dt.second(),dt.day(),dt.month(),dt.year(),p);
             }
             si=xMessageBufferSend(mess,buf,res,portMAX_DELAY);
-            break;
+            break;}
         }
     }
 

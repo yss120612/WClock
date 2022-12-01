@@ -139,7 +139,7 @@ void btn_event(event_t e){
       Serial.print(e.count);
       Serial.println(" click");
     if(e.count==5) {
-     cmd= makePacket(11,22,55);
+     cmd= makePacket(11,0,(13U<<24)&0xFF000000 |(14U<<16)&0x00FF0000 | (4U & 0x00000FFFF));
      rtc->notify(cmd);
     } 
     if (e.count==3) Serial.println(getI2Cdevices());
@@ -160,16 +160,36 @@ void btn_event(event_t e){
 
 void rtc_event(event_t e){
   uint32_t cmd;
+  uint8_t h;
+  uint8_t m;
   switch (e.button){
+case 0://вс
+case 6://сб
+
+    case 1://пн
+    case 2:
+    case 3:
+    case 4:
+    case 5://пт
+      h=(e.data>>24) & 0x00FF;
+      m=(e.data>>16) & 0x00FF;
+      Serial.print("Event Alarm 2 at - day:");
+      Serial.print(e.button);
+      Serial.print( ", time ");
+      Serial.print(h);
+      Serial.print(":");
+      Serial.println(m);
+    
+    break;
     case 99:
-      uint8_t h=(e.data>>16) & 0x00FF;
-      uint8_t m=e.data & 0x00FF;
+    
+      h=(e.data>>24) & 0x00FF;
+      m=(e.data>>16) & 0x00FF;
       Serial.print("Event Alarm 2 at - ");
       Serial.print(h);
       Serial.print(":");
       Serial.println(m);
-      Serial.println(e.data);
-    break;
+      break;
   }
 } 
 
