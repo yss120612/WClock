@@ -6,10 +6,9 @@
     <meta name="description" content="Версия 0.2">
     <meta name="author" content="Yss">
 	<link href="/css/bootstrap.min.css" type="text/css" rel="stylesheet" />
-	<link href="/css/bootstrap-dtpicker.min.css" type="text/css" rel="stylesheet" />
 	<script type="text/javascript" src="/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="/js/jquery.min.js"></script>
-	<script type="text/javascript" src="/js/bootstrap-dtpicker.min.js"></script>
+	<script type="text/javascript" src="/js/clock-timepicker.min.js"></script>
 
 	
 	
@@ -66,15 +65,7 @@
 						  </div>
 									
 						  
-						  <div class="well">
-							<div id="datetimepicker3" class="input-append">
-							  <input data-format="hh:mm" type="text"></input>
-							  <span class="add-on">
-								<i data-time-icon="icon-time" data-date-icon="icon-calendar">
-								</i>
-							  </span>
-							</div>
-						  </div>
+						<input class="time standard" type="text" value="10:15" onchange="console.log('Time changed to: ' + this.value)" />
 
 						<div class="form-button">
 							<a type="button" class="btn btn-lg btn-success" id="BTN1"><i class="fa fa-bed fa-2x pull-left">Alarm clock</i></a>
@@ -169,10 +160,7 @@
 	$(document).ready(function(){
 	process();
 
-    $('#datetimepicker3').datetimepicker({
-      pickDate: false,
-	  pickSeconds: false
-    });
+	$('.standard').clockTimePicker();
 
 
 	$('#BTN1').on('click',function(){  

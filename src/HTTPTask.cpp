@@ -27,13 +27,14 @@ server->onNotFound(std::bind(&HTTPTask::handleNotFound, this, std::placeholders:
 //server->on("/fonts/fontawesome-webfont.woff2", std::bind(&HTTPTask::handleFontAwesomeFontsWoff, this, std::placeholders::_1));
 //server->on("/js/bootstrap.min.js", std::bind(&HTTPTask::handleBootstrapJs, this, std::placeholders::_1));
 //server->on("/js/jquery.min.js", std::bind(&HTTPTask::handleJqueryJs, this, std::placeholders::_1));
-server->serveStatic("/css/bootstrap.min.css",SPIFFS,"/css/bootstrap.min.css");
+
 server->serveStatic("/js/jquery.min.js",SPIFFS,"/js/jquery.min.js");
 server->serveStatic("/js/bootstrap.min.js",SPIFFS,"/js/bootstrap.min.js");
-server->serveStatic("/js/bootstrap-dtpicker.min.js",SPIFFS,"/js/bootstrap-dtpicker.min.js");
+server->serveStatic("/js/timepicker.min.js",SPIFFS,"/js/timepicker.min.js");
+//server->serveStatic("/css/radio.css",SPIFFS,"/css/radio.css");
 server->serveStatic("/css/font-awesome.min.css",SPIFFS,"/css/font-awesome.min.css");
-server->serveStatic("/css/radio.css",SPIFFS,"/css/radio.css");
-server->serveStatic("/css/bootstrap-dtpicker.min.css",SPIFFS,"/css/bootstrap-dtpicker.min.css");
+server->serveStatic("/css/bootstrap.min.css",SPIFFS,"/css/bootstrap.min.css");
+//server->serveStatic("/css/bootstrap-dtpicker.min.css",SPIFFS,"/css/bootstrap-dtpicker.min.css");
 server->serveStatic("/fonts/fontawesome-webfont.woff2",SPIFFS,"/fonts/fontawesome-webfont.woff2");
 server->on("/post", HTTP_ANY, std::bind(&HTTPTask::handleW2A, this, std::placeholders::_1));
 server->on("/getdata", HTTP_ANY, std::bind(&HTTPTask::handleA2W, this, std::placeholders::_1));
