@@ -30,10 +30,10 @@ server->onNotFound(std::bind(&HTTPTask::handleNotFound, this, std::placeholders:
 server->serveStatic("/css/bootstrap.min.css",SPIFFS,"/css/bootstrap.min.css");
 server->serveStatic("/js/jquery.min.js",SPIFFS,"/js/jquery.min.js");
 server->serveStatic("/js/bootstrap.min.js",SPIFFS,"/js/bootstrap.min.js");
-server->serveStatic("/js/bootstrap-datetimepicker.min.js",SPIFFS,"/js/bootstrap-datetimepicker.min.js");
+server->serveStatic("/js/bootstrap-dtpicker.min.js",SPIFFS,"/js/bootstrap-dtpicker.min.js");
 server->serveStatic("/css/font-awesome.min.css",SPIFFS,"/css/font-awesome.min.css");
 server->serveStatic("/css/radio.css",SPIFFS,"/css/radio.css");
-server->serveStatic("/css/bootstrap-datetimepicker.min.css",SPIFFS,"/css/bootstrap-datetimepicker.min");
+server->serveStatic("/css/bootstrap-dtpicker.min.css",SPIFFS,"/css/bootstrap-dtpicker.min.css");
 server->serveStatic("/fonts/fontawesome-webfont.woff2",SPIFFS,"/fonts/fontawesome-webfont.woff2");
 server->on("/post", HTTP_ANY, std::bind(&HTTPTask::handleW2A, this, std::placeholders::_1));
 server->on("/getdata", HTTP_ANY, std::bind(&HTTPTask::handleA2W, this, std::placeholders::_1));
@@ -98,28 +98,6 @@ void HTTPTask::handleFile(String path,String type, AsyncWebServerRequest *reques
 void HTTPTask::handleNotFound(AsyncWebServerRequest * request) {
 	request->send(200, "text/plain", "404 PAGE NOT FOUND!!!");
 }
-
-// void HTTPTask::handleBootstrapCss(AsyncWebServerRequest * request) {
-// 		handleFile("/css/bootstrap.min.css","text/css",request);
-// }
-
-// void HTTPTask::handleRadioCss(AsyncWebServerRequest * request) {
-// 		handleFile("/css/radio.css","text/css",request);
-// }
-// void HTTPTask::handleFontAwesomeCss(AsyncWebServerRequest * request) {
-// 		handleFile("/css/font-awesome.min.css","text/css",request);
-// }
-// void  HTTPTask::handleFontAwesomeFontsWoff(AsyncWebServerRequest * request){
-// 	handleFile("/fonts/fontawesome-webfont.woff","font/woff",request);
-// }
-
-// void HTTPTask::handleJqueryJs(AsyncWebServerRequest * request) {
-//     		handleFile("/js/jquery.min.js","application/javascript",request);
-// }
-
-// void HTTPTask::handleBootstrapJs(AsyncWebServerRequest * request) {
-// 		handleFile("/js/bootstrap.min.js","application/javascript",request);
-// }
 
 void HTTPTask::handleUpdate(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final){
  uint32_t free_space = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
