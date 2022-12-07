@@ -78,10 +78,10 @@ void RTCTask::loop()
         switch (comm)
         
         {
-          case 11:
-          h = (data >>24) & 0x000000FF; 
-          m = (data >>16) & 0x000000FF;
-          d = data & 0x000000FF;  
+        case 11:
+          h = (data >>8) & 0x000000FF; 
+          m = data & 0x000000FF;
+          d = act;  
           if (d>=7) alarm(h,m);
           else alarm(h,m,d); 
           break;

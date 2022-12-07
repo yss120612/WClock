@@ -1,5 +1,7 @@
 #include "HTTPTask.h"
 #include <Update.h>
+#include "Events.h"
+#include <Wire.h>
 
 void HTTPTask::cleanup(){
 	server->end();
@@ -16,7 +18,7 @@ if (!server){
 server->on("/", std::bind(&HTTPTask::handleRoot, this, std::placeholders::_1));
 server->on("/upd", std::bind(&HTTPTask::handleUpd, this, std::placeholders::_1));
 server->on("/log", std::bind(&HTTPTask::handleUpd, this, std::placeholders::_1));
-
+server->on("/main", std::bind(&HTTPTask::handleMain, this, std::placeholders::_1));
 //server->on("/main", std::bind(&HttpHelper::handleMainFile, this, std::placeholders::_1));
 server->onNotFound(std::bind(&HTTPTask::handleNotFound, this, std::placeholders::_1));
 //server->on("/css/bootstrap.min.css", std::bind(&HTTPTask::handleBootstrapCss, this, std::placeholders::_1));
@@ -28,10 +30,14 @@ server->onNotFound(std::bind(&HTTPTask::handleNotFound, this, std::placeholders:
 server->serveStatic("/css/bootstrap.min.css",SPIFFS,"/css/bootstrap.min.css");
 server->serveStatic("/js/jquery.min.js",SPIFFS,"/js/jquery.min.js");
 server->serveStatic("/js/bootstrap.min.js",SPIFFS,"/js/bootstrap.min.js");
+server->serveStatic("/js/bootstrap-datetimepicker.min.js",SPIFFS,"/js/bootstrap-datetimepicker.min.js");
 server->serveStatic("/css/font-awesome.min.css",SPIFFS,"/css/font-awesome.min.css");
 server->serveStatic("/css/radio.css",SPIFFS,"/css/radio.css");
+server->serveStatic("/css/bootstrap-datetimepicker.min.css",SPIFFS,"/css/bootstrap-datetimepicker.min");
 server->serveStatic("/fonts/fontawesome-webfont.woff2",SPIFFS,"/fonts/fontawesome-webfont.woff2");
-	
+server->on("/post", HTTP_ANY, std::bind(&HTTPTask::handleW2A, this, std::placeholders::_1));
+server->on("/getdata", HTTP_ANY, std::bind(&HTTPTask::handleA2W, this, std::placeholders::_1));
+
 server->on(
 	"/update", 
 	HTTP_POST, 
@@ -67,6 +73,14 @@ void HTTPTask::handleRoot(AsyncWebServerRequest * request) {
 	if (!request->authenticate("Yss1", "bqt3"))
 		return request->requestAuthentication();
 		handleFile("/index.htm","text/html", request);
+}
+
+
+void HTTPTask::handleMain(AsyncWebServerRequest * request) {
+	
+	if (!request->authenticate("Yss1", "bqt3"))
+		return request->requestAuthentication();
+		handleFile("/main.htm","text/html", request);
 }
 
 
@@ -166,4 +180,178 @@ void HTTPTask::handleUpd(AsyncWebServerRequest * request) {
 }
 
 
+
+void HTTPTask::handleW2A(AsyncWebServerRequest * request)
+{
+	
+	uint8_t params = request->params();
+	if (params<1 || !(request->getParam(0)->name()).equals(F("page"))){
+			request->send(500, F("text/plain"),F("ERROR PAGE PARAMETR")); // Oтправляем ответ No Reset
+			return;
+	}
+
+    if (request->getParam(0)->value().equals(F("main"))){  
+    	for (uint8_t i = 1; i < params; i++)
+    	{
+        	var(request->getParam(i)->name(), request->getParam(i)->value());
+    	}
+	} else if (request->getParam(0)->value().equals(F("log"))){  
+    	for (uint8_t i = 1; i < params; i++)
+    	{
+        	//var_log(request->getParam(i)->name(), request->getParam(i)->value());
+    	}
+	}
+    request->send(200, F("text/plain"), F("OK"));
+}
+
+void HTTPTask::var(String n, String v)
+{
+     event_t ev;
+	 uint8_t h=9,m=50,d=3;
+     ev.state=WEB_EVENT;
+  	if (n.equals("BTN1"))
+	{
+		ev.button=1;
+
+		ev.data=makeAlarm(11,d,h,m); //11 завести будильник
+		//ev.count=v.equals(F("true"));
+	}
+	else if (n.equals("REL2"))
+	{
+		ev.button=2;
+		ev.count=v.equals(F("true"));
+	}
+	else if (n.equals("REL3"))
+	{
+		ev.button=3;
+		ev.count=v.equals(F("true"));
+	}
+	else if (n.equals("REL4"))
+	{
+		ev.button=4;
+		ev.count=v.equals(F("true"));
+	}
+	else if (n.equals("FUNC1"))
+	{
+		ev.state=PULT_BUTTON;
+		ev.button=5;
+		ev.count=IR_DEVICE;
+		
+	}
+	else if (n.equals("LIGHT_CW"))
+	{
+		//ev.button=WEB_CANNEL_CW;
+		ev.count=v.toInt();
+		
+	}
+	else if (n.equals("LIGHT_NW"))
+	{
+		//ev.button=WEB_CANNEL_NW;
+		ev.count=v.toInt();
+	}
+	else if (n.equals("LIGHT_WW"))
+	{
+		//ev.button=WEB_CANNEL_WW;
+		ev.count=v.toInt();
+	}
+	 xQueueSend(que,&ev,portMAX_DELAY);
+}
+
+
+String HTTPTask::getI2Cdevices(){
+    int error;
+	String res="I2C device found at address<ul>";
+	
+	
+	// uint8_t count=0;
+    // for (uint8_t address = 1; address < 127; address++ )  {
+    // Wire.beginTransmission(address);
+    // error = Wire.endTransmission();
+    // if (error == 0)    {
+	// 	res+="<li>";
+	// 	res+=String(address,16);
+	// 	res+="</li>";
+	// 	count++;
+      
+    // }
+    // }
+    // res+="<li><b>Ttal devices ";
+	// res+=String(count);
+	// res+="</b></li></ul>";
+	return res;
+}
+
+
+void HTTPTask::handleA2W(AsyncWebServerRequest * request)
+{
+	if (request->params()<1 || !(request->getParam(0)->name()).equals("page")){
+			request->send(500, F("text/plain"),F("ERROR PAGE PARAMETR")); // Oтправляем ответ No Reset
+			return;
+	}
+	String str = F("{");
+	if (request->getParam(0)->value().equals(F("log"))){
+		//String str = F("{\"logdata\":\"<ul>")+logg.getAll2Web()+F("</ul>\"}");
+		str+=F("\"logdata\":\"<ul>");
+		//str+=logg.getAll2Web();
+		str+=F("</ul>\"}");
+		request->send(200, "text/json",str); // Oтправляем ответ No Reset
+	}else if (request->getParam(0)->value().equals(F("main"))){
+		for (uint8_t i=0;i<4;i++)
+		{
+			str+=F("\"REL");
+			str+=String(i+1);
+			str+=F("\":");
+			//str+=String(data->isOn(i)?1:0);
+			str+=F(",");
+		}
+		str+=F("\"BAND_CW\":");
+		str+=String(128);
+		str+=F(",");
+		str+=F("\"BAND_NW\":");
+		str+=String(128);
+		str+=F(",");
+		str+=F("\"BAND_WW\":");
+		str+=String(128);
+		str+=F(",");
+		str+=F("\"DEVSHOW\":");
+		str+="\"HUI\"";
+		str+=F("}");
+
+		request->send(200, "text/json",str); // Oтправляем ответ No Reset
+	}else if (request->getParam(0)->value().equals(F("main1"))){
+		str+=F("\"DEVSHOW\":\"");
+		str+=getI2Cdevices();
+		//str+="AAS";
+		str+=F("\"}");
+		//Serial.println(str);
+		request->send(200, "text/json",str); // Oтправляем ответ No Reset
+	
+	}else if (request->getParam(0)->value().equals(F("update"))){
+		
+		str+=F("\"ALL\":");
+		
+		if (Update.isRunning()){
+			str+=String(Update.size());
+			str+=F(",\"PROGRESS\":");
+			str+=String(Update.progress());
+			str+=F(",\"WORK\":1,\"ERROR\":\"");
+		}
+		else
+		{
+			str+=F("0,\"PROGRESS\":0,\"WORK\":0,\"ERROR\":\"");
+		}
+		
+		if (Update.hasError())
+		{
+			str+=Update.errorString();
+		}
+		else{
+			str+=F("OK");
+		}
+		str+=F("}");
+
+		//logg.logging(str);
+		request->send(200, "text/json",str); // Oтправляем ответ No Reset
+	}
+}
 

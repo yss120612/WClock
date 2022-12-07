@@ -45,5 +45,11 @@ void static readPacket(uint32_t container, uint8_t * btn, uint8_t * value, uint1
     return container;
 }
 
+static uint32_t makeAlarm(uint8_t cmd, uint8_t day, uint8_t hour, uint8_t min){
+    uint32_t container;
+    container = (cmd << 24) & 0xFF000000 | (day<<16) & 0x00FF0000 | (hour << 8) & 0x0000FF00 | min  & 0x000000FF;
+    return container;
+}
+
 
 #endif

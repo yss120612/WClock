@@ -39,7 +39,7 @@ void LEDTask::setup()
   last_time = 0;
 
   setLedMode(0, BLINK_05HZ);
-  setLedMode(1, BLINK_OFF);
+  setLedMode(1, BLINK_4HZ);
 }
 
  void LEDTask::setLedMode(uint8_t ledN, blinkmode_t bm){

@@ -89,13 +89,13 @@ http->resume();
 
 //h=25 every hour
 //wd=10 everyday 0..6
-void setAlarm(uint8_t no, uint8_t m,uint8_t h=25, bool retry=true, uint8_t wd=10){
+// void setAlarm(uint8_t no, uint8_t m,uint8_t h=25, bool retry=true, uint8_t wd=10){
         
-        //uint32_t cmd=no << 24 | h<< 16 | m << 8 | retry<<4 | wd;
-        //rtp->notify(cmd); 
+//         //uint32_t cmd=no << 24 | h<< 16 | m << 8 | retry<<4 | wd;
+//         //rtp->notify(cmd); 
 
 
-}
+// }
 
 String getI2Cdevices(){
     int error;
@@ -131,6 +131,23 @@ switch(e.data){
 }
 }
 
+
+void web_event(event_t e){
+uint32_t cmd;
+switch(e.button){
+  case 1:
+     //arm alarm 
+     //cmd= e.data;
+     rtc->notify(e.data);
+    //Serial.println("encoder clock");
+  break;
+  case 2:
+    Serial.println("encoder unclock");
+  break;
+}
+}
+
+
 void btn_event(event_t e){
   uint32_t cmd;
   switch (e.state){
@@ -139,7 +156,8 @@ void btn_event(event_t e){
       Serial.print(e.count);
       Serial.println(" click");
     if(e.count==5) {
-     cmd= makePacket(11,0,(13U<<24)&0xFF000000 |(14U<<16)&0x00FF0000 | (4U & 0x00000FFFF));
+      cmd=makeAlarm(11,3,10,12);
+     //cmd= makePacket(11,0,(11U<<24)&0xFF000000 |(01U<<16)&0x00FF0000 | (2U & 0x00000FFFF));
      rtc->notify(cmd);
     } 
     if (e.count==3) Serial.println(getI2Cdevices());
@@ -217,6 +235,9 @@ if (xQueueReceive(queue,&ev,portMAX_DELAY))
   switch (ev.state){
     case ENCODER_EVENT:
     encoder_event(ev);
+    break;
+    case WEB_EVENT:
+    web_event(ev);
     break;
     case BTN_CLICK:
     case BTN_LONGCLICK:
