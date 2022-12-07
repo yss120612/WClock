@@ -15,7 +15,9 @@ delete rtc;
 }
 
 void RTCTask::alarm(uint8_t hh,uint8_t mm){
-  DateTime dt(2022,1,1,hh,mm,0);
+  DateTime dt;
+  TimeSpan ts(0,hh,mm,0);
+  dt=dt+ts;
   Serial.print("Set Alarm 2 to - ");
   Serial.print(hh);
   Serial.print(":");
@@ -27,7 +29,10 @@ void RTCTask::alarm(uint8_t hh,uint8_t mm){
 
 //dw 6 суббота. 0 понедельник 1 вторник ...
 void RTCTask::alarm(uint8_t hh,uint8_t mm,uint8_t dw){
- DateTime dt(0,dw+2,1,hh,mm,0);
+  DateTime dt;
+  TimeSpan ts(dw+2,hh,mm,0);
+  dt=dt+ts;
+ //DateTime dt(0,dw+2,1,hh,mm,0);
   Serial.print("Set Alarm 2 to day:");
   Serial.print(dw);
   Serial.print(" at time ");
@@ -52,14 +57,16 @@ event_t ev;
 ev.state=RTC_EVENT;
 if(rtc->getAlarm2Mode()==DS3231_A2_Hour)
 {
-ev.button=99;
+  ev.button=99;
 }
 else{
   ev.button=dt.dayOfTheWeek();
 }
-ev.data=(dt.hour()<<24) & 0xFF000000 | (dt.minute() <<16) & 0x00FF0000;
-Serial.println(ev.data);
-alarm(dt.hour(),dt.minute()+3);
+
+ev.data=makeAlarm(0,ev.button,dt.hour(),dt.minute());
+//(dt.hour()<<24) & 0xFF000000 | (dt.minute() <<16) & 0x00FF0000;
+//Serial.println(ev.data);
+//alarm(dt.hour(),dt.minute()+3);
 xQueueSend(que,&ev,portMAX_DELAY);
 }
 }

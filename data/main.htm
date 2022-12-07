@@ -8,9 +8,11 @@
 	<link href="/css/bootstrap.min.css" type="text/css" rel="stylesheet" />
 	<script type="text/javascript" src="/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="/js/jquery.min.js"></script>
-	<script type="text/javascript" src="/js/clock-timepicker.min.js"></script>
+	<script type="text/javascript" src="/js/timepicker.min.js"></script>
 
-	
+	<style type="text/css">
+		.time { display:inline-block; font-size:26px; padding:5px; text-align:center; width:94px; margin-top:5px;}
+	  </style>
 	
 </head>
 <body>
@@ -38,8 +40,8 @@
 		</nav>
 		
 		
-		
-		<div class="panel panel-default col-md-offset-1 col-md-10">
+		<div class="container">
+		<div class="panel panel-default col-md-offset-1">
 			
 			<div class="panel-body">		
 				<div class="col-md-4">
@@ -65,7 +67,7 @@
 						  </div>
 									
 						  
-						<input class="time standard" type="text" value="10:15" onchange="console.log('Time changed to: ' + this.value)" />
+						<input class="time form-control" id="time" type="text" value="" />
 
 						<div class="form-button">
 							<a type="button" class="btn btn-lg btn-success" id="BTN1"><i class="fa fa-bed fa-2x pull-left">Alarm clock</i></a>
@@ -154,21 +156,25 @@
 				</div>
 			</div>
 		</div>
-	
- 
+	</div>
+	</body>
+
  <script type="text/javascript">
 	$(document).ready(function(){
 	process();
 
-	$('.standard').clockTimePicker();
+	$('.time').clockTimePicker({
+		precision:10
+	});
 
+	$('.time').prop('value','12:00');
 
 	$('#BTN1').on('click',function(){  
 			
 			$.ajax({  
                     type: "POST",  
                     url: "/post",  
-                    data: "page=main&BTN1=1",  
+                    data: "page=main&BTN1="+$('#time').prop('value'),  
                     success: function(html){  
                     }  
 			}); 
@@ -288,5 +294,5 @@
 	}
 
 	</script>
-	</body>
+	
 </html>
