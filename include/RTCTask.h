@@ -14,15 +14,26 @@
 
 struct alarm_t{
     bool active;
+    bool need_alarm;
+    uint8_t action;
     uint8_t hour;
     uint8_t minute;
     uint8_t wday;
     period_t period;
-    static DateTime getNext(alarm_t at){
-        DateTime dt;//01.01.20000 00:00:00 
-        TimeSpan ts(0,at.hour,at.minute,0);
-        uint8_t wd;
+    alarm_t(){
+        active=false;
+        need_alarm=false;
+        action=0;
+        hour=0;
+        minute=0;
+        wday=0;
+        period=NO_ALARM;
+    }
+   
+    static DateTime getNext(alarm_t &at){
+        at.need_alarm=false;
         switch (at.period) {
+            NO_ALARM:
             ONCE_ALARM:
             at.active=false;
             break;
@@ -40,7 +51,7 @@ struct alarm_t{
             break;
             EVERYHOUR_ALARM:
              if (at.hour>=23) at.hour=0;
-             else at.hour=0;
+             else at.hour++;
             break;
             WD1_ALARM:
             WD2_ALARM:
@@ -49,6 +60,7 @@ struct alarm_t{
             WD5_ALARM:
             WD6_ALARM:
             WD7_ALARM:
+            at.need_alarm=true;
             break;
         }
     }
@@ -63,8 +75,13 @@ public:
     //blinkmode_t get_blinkmode(uint8_t idx) {return led[idx]->getMode();}
 protected:
     //void setLedMode(uint8_t ledN, blinkmode_t bm);
-    void alarm(uint8_t hh,uint8_t mm);
-    void alarm(uint8_t hh,uint8_t mm,uint8_t dw);
+    //void alarm(uint8_t hh,uint8_t mm);
+    //void alarm(uint8_t hh,uint8_t mm,uint8_t dw);
+    bool setupAlarm(uint8_t idx, uint8_t act, uint8_t h, uint8_t m,  period_t p, uint8_t d=0);
+    uint8_t refreshAlarms();
+    void alarm(alarm_t &a);
+    void set_if_need(alarm_t &a);
+
     void alarmFired(uint8_t aNo);
     bool update_time_from_inet();
     void cleanup() override;
@@ -77,7 +94,6 @@ protected:
     RTC_DS3231 * rtc;
     const char * NTPServer = "pool.ntp.org";
     MessageBufferHandle_t mess;
+    alarm_t alarms[ALARMS_COUNT];
 };
-
-
 #endif 
