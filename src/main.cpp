@@ -189,20 +189,18 @@ case 6://сб
     case 3:
     case 4:
     case 5://пт
-      h=(e.data>>24) & 0x00FF;
-      m=(e.data>>16) & 0x00FF;
+      h=(e.data>>8) & 0x00FF;
+      m=e.data & 0x00FF;
       Serial.print("Event Alarm 2 at - day:");
       Serial.print(e.button);
       Serial.print( ", time ");
       Serial.print(h);
       Serial.print(":");
       Serial.println(m);
-    
     break;
     case 99:
-    
-      h=(e.data>>24) & 0x00FF;
-      m=(e.data>>16) & 0x00FF;
+      h=(e.data>>8) & 0x00FF;
+      m=e.data & 0x00FF;
       Serial.print("Event Alarm 2 at - ");
       Serial.print(h);
       Serial.print(":");

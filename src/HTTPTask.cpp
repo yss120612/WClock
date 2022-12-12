@@ -191,8 +191,10 @@ void HTTPTask::var(String n, String v)
   	if (n.equals("BTN1"))
 	{
 		ev.button=1;
-
-		ev.data=makeAlarm(11,d,h,m); //11 завести будильник
+		//Serial.println(v);
+		h=v.substring(0,v.indexOf(':')).toInt();
+		m=v.substring(v.indexOf(':')+1).toInt();
+		ev.data=makeAlarm(11,8,h,m); //11 завести будильник
 		//ev.count=v.equals(F("true"));
 	}
 	else if (n.equals("REL2"))
