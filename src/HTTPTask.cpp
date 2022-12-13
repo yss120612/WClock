@@ -193,8 +193,11 @@ void HTTPTask::var(String n, String v)
 		ev.button=1;
 		//Serial.println(v);
 		h=v.substring(0,v.indexOf(':')).toInt();
-		m=v.substring(v.indexOf(':')+1).toInt();
-		ev.data=makeAlarm(11,8,h,m); //11 завести будильник
+		m=v.substring(v.indexOf(':')+1,v.indexOf('-')).toInt();
+		d=v.substring(v.indexOf('-')+1).toInt();
+		Serial.print("Period=");
+		Serial.println(d);
+		ev.data=makeAlarm(11,d,h,m); 
 		//ev.count=v.equals(F("true"));
 	}
 	else if (n.equals("REL2"))

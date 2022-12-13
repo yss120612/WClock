@@ -27,13 +27,12 @@ struct alarm_t{
         hour=0;
         minute=0;
         wday=0;
-        period=NO_ALARM;
+        period=ONCE_ALARM;
     }
    
     static DateTime getNext(alarm_t &at){
         at.need_alarm=false;
         switch (at.period) {
-            NO_ALARM:
             ONCE_ALARM:
             at.active=false;
             break;
@@ -77,7 +76,7 @@ protected:
     //void setLedMode(uint8_t ledN, blinkmode_t bm);
     //void alarm(uint8_t hh,uint8_t mm);
     //void alarm(uint8_t hh,uint8_t mm,uint8_t dw);
-    bool setupAlarm(uint8_t idx, uint8_t act, uint8_t h, uint8_t m,  period_t p, uint8_t d=0);
+    bool setupAlarm(uint8_t idx, uint8_t act, uint8_t h, uint8_t m,  period_t p);
     uint8_t refreshAlarms();
     void alarm(alarm_t &a);
     void set_if_need(alarm_t &a);

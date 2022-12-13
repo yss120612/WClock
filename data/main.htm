@@ -68,6 +68,20 @@
 									
 						  
 						<input class="time form-control" id="time" type="text" value="" />
+						<select id="PERIOD" name="PERIOD" class="form-select" aria-label="Выбор периода">
+							<option value="1">Единожды</option>
+							<option value="2">Ежечастно</option>
+							<option value="2">Ежедневно</option>
+							<option value="3">Рабочие дни</option>
+							<option value="4">Выходные дни</option>
+							<option value="6">Понедельник</option>
+							<option value="7">Вторник</option>
+							<option value="8">Среда</option>
+							<option value="9">Четверг</option>
+							<option value="10">Пятница</option>
+							<option value="11">Суббота</option>
+							<option value="5">Воскресенье</option>
+						</select>
 
 						<div class="form-button">
 							<a type="button" class="btn btn-lg btn-success" id="BTN1"><i class="fa fa-bed fa-2x pull-left">Alarm clock</i></a>
@@ -174,7 +188,7 @@
 			$.ajax({  
                     type: "POST",  
                     url: "/post",  
-                    data: "page=main&BTN1="+$('#time').prop('value'),  
+                    data: "page=main&BTN1="+$('#time').prop('value')+"-"+$('#PERIOD').prop('value'),  
                     success: function(html){  
                     }  
 			}); 
