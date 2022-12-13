@@ -14,37 +14,20 @@ void RTCTask::cleanup()
 delete rtc;
 }
 
-//void RTCTask::alarm(uint8_t hh,uint8_t mm){
-  // DateTime dt;
-  // TimeSpan ts(0,hh,mm,0);
-  // dt=dt+ts;
-  // Serial.print("Set Alarm 2 to - ");
-  // Serial.print(hh);
-  // Serial.print(":");
-  // Serial.println(mm);
-  
-  
-  // rtc->setAlarm2(dt,DS3231_A2_Hour);
-//}
-
 //установка конкретного будильника
 void RTCTask::alarm(alarm_t &a){
   a.active=true;
-  a.need_alarm=false;
+  //a.need_alarm=false;
   DateTime dt;
+  
   switch (a.action)
   {
-    case NO_ALARM:
-    a.active=false;
-    break;
-    case ONCE_ALARM:
-    case EVERYHOUR_ALARM:
-      rtc->setAlarm2(dt,DS3231_A2_Hour);  
+    case  ONCE_ALARM:
+    case  EVERYHOUR_ALARM:
+    case  EVERYDAY_ALARM:
+      rtc->setAlarm2(dt+TimeSpan(0,a.hour,a.minute,0),DS3231_A2_Hour);  
     case  WDAY_ALARM:
     case  HDAY_ALARM:
-    case  EVERYDAY_ALARM:
-      rtc->setAlarm2(dt+TimeSpan((a.wday+1)%7,a.hour,a.minute,0),DS3231_A2_Day);
-    break;
     case  WD1_ALARM:
     case  WD2_ALARM:
     case  WD3_ALARM:
@@ -52,38 +35,24 @@ void RTCTask::alarm(alarm_t &a){
     case  WD5_ALARM:
     case  WD6_ALARM:
     case  WD7_ALARM:
-    a.need_alarm=true;//установить через минуту
+      rtc->setAlarm2(dt+TimeSpan(a.wday,a.hour,a.minute,0),DS3231_A2_Day);
     break;
+    
+    // a.need_alarm=true;//установить через минуту
+    // break;
   }
 }
 
 void RTCTask::set_if_need(alarm_t &a){
-  if (!a.active || !a.need_alarm) return;
-  DateTime dt(rtc->now());
-  if (dt.minute()!=a.minute){
-    //rtc->setAlarm2(dt+TimeSpan((a.wday+1)%7,a.hour,a.minute,0),DS3231_A2_Day);
-    a.need_alarm=false;
-  }
-  refreshAlarms();
+  // if (!a.active || !a.need_alarm) return;
+  // DateTime dt(rtc->now());
+  // if (dt.minute()!=a.minute){
+  //   //rtc->setAlarm2(dt+TimeSpan((a.wday+1)%7,a.hour,a.minute,0),DS3231_A2_Day);
+  //   a.need_alarm=false;
+  // }
+  // refreshAlarms();
 }
 
-
-
-//dw 6 суббота. 0 понедельник 1 вторник ...
-//void RTCTask::alarm(uint8_t hh,uint8_t mm,uint8_t dw){
-//   DateTime dt;
-//   TimeSpan ts(dw+1%,hh,mm,0);
-//   dt=dt+ts;
-//  //DateTime dt(0,dw+2,1,hh,mm,0);
-//   Serial.print("Set Alarm 2 to day:");
-//   Serial.print(dw);
-//   Serial.print(" at time ");
-
-//   Serial.print(hh);
-//   Serial.print(":");
-//   Serial.println(mm);
-//  rtc->setAlarm2(dt,DS3231_A2_Day);
-//}
 
 
 void RTCTask::alarmFired(uint8_t an){
@@ -115,42 +84,81 @@ xQueueSend(que,&ev,portMAX_DELAY);
 }
 }
 
-bool RTCTask::setupAlarm(uint8_t idx, uint8_t act, uint8_t h, uint8_t m,  period_t p, uint8_t d=0){
+bool RTCTask::setupAlarm(uint8_t idx, uint8_t act, uint8_t h, uint8_t m,  period_t p){
+
+  
+  Serial.print(h);
+  Serial.print(":");
+  Serial.println(m);
+
 if (idx>=ALARMS_COUNT) return false;
 alarms[idx].active=true;
 alarms[idx].action=act;
-alarms[idx].hour=h;
+
 alarms[idx].minute=m;
 alarms[idx].period=p;
-alarms[idx].wday=d;
 alarms[idx].need_alarm=false;
+DateTime dt=rtc->now();
+uint16_t amin=h*60+m;
+uint16_t nmin=dt.hour()*60+dt.minute();
+uint8_t dw=dt.dayOfTheWeek();
+
+if (p>=WD7_ALARM) dw=(uint8_t)WD7_ALARM-5;
+else if (p==WDAY_ALARM) {
+if (dw>5||dw==0) dw=1; 
+if (nmin>=amin) dw=dw<5?dw+1:1;
+}else if (p==HDAY_ALARM) {
+if (dw<6 && dw!=0) dw=6; 
+if (nmin>=amin) dw=dw==6?0:6;
+}else if (p==ONCE_ALARM || p==EVERYDAY_ALARM){
+  // if (nmin>=amin) dw++;
+  // if (dw>6) dw=0;
+}else if (p==EVERYHOUR_ALARM){
+  while (nmin>=amin && h>0) {
+    h++;
+    if (h>23) h=0;
+    amin+=60;
+  }
+  
+}
+alarms[idx].hour=h;
+alarms[idx].wday=dw;
 return true;
 }
 
 uint8_t RTCTask::refreshAlarms(){
 uint8_t index=ALARMS_COUNT;
-uint8_t dh,dm,dd;
-uint16_t amin,nmin,cdiff,min_diff=7*24*60+1;//week and one minutes
+
+uint16_t amin,nmin,cdiff,min_diff=WEEK+1;//week and one minutes
+
 DateTime d=rtc->now();
-nmin=d.hour()*60+d.minute();
+
 for (uint8_t i=0;i<ALARMS_COUNT;i++){
   if (!alarms[i].active || alarms[i].need_alarm) continue;
   amin=alarms[i].hour*60+alarms[i].minute;
+  nmin=d.hour()*60+d.minute();
+ Serial.print("amin=");
+Serial.print(amin);
+Serial.print(" nmin=");
+Serial.println(nmin);
+
   switch (alarms[i].period)
   {
-
-  case ONCE_ALARM:
-    /* code */
-    break;
   case EVERYDAY_ALARM:
   case EVERYHOUR_ALARM: 
-  if (amin<=nmin) amin+=24*60;
-  cdiff=amin-nmin;
-    /* code */
+  if (amin<=nmin) amin+=DAY;
     break;
   default:
+  amin+=((d.dayOfTheWeek()>alarms[i].wday)?(7-alarms[i].wday):alarms[i].wday)*DAY;
+  nmin+=d.dayOfTheWeek()*DAY;
+  if (amin<=nmin) amin+=WEEK;
     break;
   }
+cdiff=amin-nmin;  
+Serial.print("Index=");
+Serial.print(i);
+Serial.print(" Diff=");
+Serial.println(cdiff);
 if (cdiff<min_diff){
   min_diff=cdiff;
   index=i;
@@ -168,7 +176,7 @@ void RTCTask::loop()
         uint16_t data;
         uint8_t h; 
         uint8_t m;
-        uint8_t d;  
+        period_t d;  
         readPacket(command, &comm, &act, &data);
         switch (comm)
         
@@ -176,9 +184,12 @@ void RTCTask::loop()
         case 11:
           h = (data >>8) & 0x000000FF; 
           m = data & 0x000000FF;
-          d = act;  
-          if (d>=7) alarm(h,m);
-          else alarm(h,m,d); 
+          d = (period_t)(act-1);  
+          //if (d>=7) alarm(h,m);
+          //else alarm(h,m,d); 
+          
+          setupAlarm(0,1,h,m,d);
+          refreshAlarms();
           break;
         case 10:{
 
@@ -204,7 +215,7 @@ alarmFired(1);
 if (rtc->alarmFired(2)){
 alarmFired(2);
 }  
-for (uint8_t i=0;i<ALARMS_COUNT;i++) set_if_need(alarms[i]);
+//for (uint8_t i=0;i<ALARMS_COUNT;i++) set_if_need(alarms[i]);
 
 
 if (xEventGroupWaitBits(flg, FLAG_WIFI, pdFALSE, pdTRUE, portMAX_DELAY) & FLAG_WIFI) {    
