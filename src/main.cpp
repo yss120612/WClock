@@ -180,34 +180,30 @@ void rtc_event(event_t e){
   uint32_t cmd;
   uint8_t h;
   uint8_t m;
+  uint8_t d;
   switch (e.button){
-case 0://вс
-case 6://сб
+   case 0://вс
+   case 6://сб
 
-    case 1://пн
-    case 2:
-    case 3:
-    case 4:
-    case 5://пт
+   case 1://пн
+   case 2:
+   case 3:
+   case 4:
+   case 5://пт
+      d=(e.data>>16) & 0x00FF;
       h=(e.data>>8) & 0x00FF;
       m=e.data & 0x00FF;
       Serial.print("Event Alarm 2 at - day:");
-      Serial.print(e.button);
+      Serial.print(d);
       Serial.print( ", time ");
       Serial.print(h);
       Serial.print(":");
       Serial.println(m);
-    break;
-    case 99:
-      h=(e.data>>8) & 0x00FF;
-      m=e.data & 0x00FF;
-      Serial.print("Event Alarm 2 at - ");
-      Serial.print(h);
-      Serial.print(":");
-      Serial.println(m);
-      break;
+   break;
+    
   }
 } 
+
 
 
 void pult_event(event_t e){

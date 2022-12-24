@@ -14,7 +14,6 @@
 
 struct alarm_t{
     bool active;
-    bool need_alarm;
     uint8_t action;
     uint8_t hour;
     uint8_t minute;
@@ -22,7 +21,6 @@ struct alarm_t{
     period_t period;
     alarm_t(){
         active=false;
-        need_alarm=false;
         action=0;
         hour=0;
         minute=0;
@@ -30,8 +28,7 @@ struct alarm_t{
         period=ONCE_ALARM;
     }
    
-    static DateTime getNext(alarm_t &at){
-        at.need_alarm=false;
+    static void getNext(alarm_t &at){
         switch (at.period) {
             ONCE_ALARM:
             at.active=false;
@@ -59,7 +56,6 @@ struct alarm_t{
             WD5_ALARM:
             WD6_ALARM:
             WD7_ALARM:
-            at.need_alarm=true;
             break;
         }
     }
@@ -76,10 +72,11 @@ protected:
     //void setLedMode(uint8_t ledN, blinkmode_t bm);
     //void alarm(uint8_t hh,uint8_t mm);
     //void alarm(uint8_t hh,uint8_t mm,uint8_t dw);
+    uint8_t findAndSetNext(DateTime dt, Ds3231Alarm2Mode mode);
     bool setupAlarm(uint8_t idx, uint8_t act, uint8_t h, uint8_t m,  period_t p);
     uint8_t refreshAlarms();
     void alarm(alarm_t &a);
-    void set_if_need(alarm_t &a);
+ 
 
     void alarmFired(uint8_t aNo);
     bool update_time_from_inet();

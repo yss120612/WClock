@@ -195,8 +195,8 @@ void HTTPTask::var(String n, String v)
 		h=v.substring(0,v.indexOf(':')).toInt();
 		m=v.substring(v.indexOf(':')+1,v.indexOf('-')).toInt();
 		d=v.substring(v.indexOf('-')+1).toInt();
-		Serial.print("Period=");
-		Serial.println(d);
+		// Serial.print("Period=");
+		// Serial.println(d);
 		ev.data=makeAlarm(11,d,h,m); 
 		//ev.count=v.equals(F("true"));
 	}
