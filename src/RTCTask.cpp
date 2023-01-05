@@ -7,7 +7,22 @@ rtc= new RTC_DS3231();
 rtc->begin();
 fast_time_interval=true;
 last_sync=0;
+initAlarms();
 }
+
+void RTCTask::initAlarms(){
+event_t e;
+e.state=MEM_EVENT;
+e.button=3;
+xQueueSend(que,&e,portMAX_DELAY);
+}
+
+
+void RTCTask::saveAlarms(){
+  xMessageBufferSend( alarm_mess,copy_alarm,ALARM_LENGTH,1000);
+  
+}
+
 
 void RTCTask::cleanup()
 {
@@ -34,9 +49,13 @@ void RTCTask::alarm(alarm_t &a){
     case  WD5_ALARM:
     case  WD6_ALARM:
     case  WD7_ALARM:
-      rtc->setAlarm2(dt+TimeSpan(a.wday,a.hour,a.minute,0),DS3231_A2_Day);
+      rtc->setAlarm2(dt+TimeSpan(a.wday+1>6?0:a.wday+1,a.hour,a.minute,0),DS3231_A2_Day);
     break;
   }
+  // dt=rtc->getAlarm2();
+  // Serial.print(a.wday);
+  // Serial.print(" DW=");
+  // Serial.println(dt.dayOfTheWeek());
 }
 
 
@@ -81,7 +100,10 @@ for (int i=0;i<ALARMS_COUNT;i++){
   }
 }
 
-if (result<ALARMS_COUNT) alarm_t::getNext(alarms[result]);
+if (result<ALARMS_COUNT) 
+{
+getNext(alarms[result]);
+}
 
 return result;
 }
@@ -110,25 +132,18 @@ else if (nmin>=amin) {dw=dw==6?0:6;}
 }else if (p==ONCE_ALARM || p==EVERYDAY_ALARM){
 
 }else if (p==EVERYHOUR_ALARM){
- while (nmin>=amin) 
- {
- amin+=60; 
- if (h++>23) h=0;
- }
+  h=dt.hour();
+  if(m<=dt.minute()) h++;
+  if (h>23) h=0;
 }
 
 alarms[idx].hour=h;
 alarms[idx].wday=dw;
-// Serial.print("Setup h=");
-// Serial.println(h);
-// Serial.print("m=");
-// Serial.println(m);
-// Serial.print("d=");
-// Serial.println(dw);
-
 return true;
 }
 
+
+//find and set next nearest alarm
 uint8_t RTCTask::refreshAlarms(){
 uint8_t index=ALARMS_COUNT;
 uint16_t amin,nmin,cdiff,min_diff=WEEK+1;//week and one minutes
@@ -153,6 +168,8 @@ for (uint8_t i=0;i<ALARMS_COUNT;i++){
     break;
   }
 cdiff=amin-nmin;  
+Serial.print(" altrm_t=");
+Serial.println(sizeof(alarm_t));
 Serial.print(" Diff=");
 Serial.println(cdiff);
 if (cdiff<min_diff){
@@ -171,6 +188,12 @@ return index;
 
 void RTCTask::loop()
 {
+    
+    if (xMessageBufferReceive(alarm_mess,copy_alarms,ALARM_LENGTH,1000)==ALARM_LENGTH){
+      memcpy(alarms,copy_alarms,ALARM_LENGTH);
+      refreshAlarms();  
+    }
+      
     uint32_t command;
     if (xTaskNotifyWait(0, 0, &command, 1000))
     {
@@ -207,7 +230,7 @@ void RTCTask::loop()
               strncpy(p,dayofweek+3 * dt.dayOfTheWeek(),3);
               res = snprintf(buf, sizeof(buf), "Time %d:%02d:%02d*Date %d-%02d-%d*%s", dt.hour(),dt.minute(),dt.second(),dt.day(),dt.month(),dt.year(),p);
             }
-            si=xMessageBufferSend(mess,buf,res,portMAX_DELAY);
+            si=xMessageBufferSend(disp_mess,buf,res,portMAX_DELAY);
             break;}
         }
     }

@@ -29,11 +29,15 @@ enum flags_t : uint8_t { FLAG_WIFI = 1, FLAG_MQTT = 2 };
 
 #define  AT24C32_ADDRESS 0x57
 #define  AT24C32_OFFSET 0x78
+enum memaddr_t : uint16_t {CELL0,CELL1,CELL2,CELL3,CELL4,CELL5,CELL6,CELL7}
+
 #define  EEPROM_PAGE_SIZE  32
 #define  EEPROM_WORK_SIZE  EEPROM_PAGE_SIZE / 2
 #define  EEPROM_WRITE_TIMEOUT  10
 
 #define SEALEVELPRESSURE_HPA (1013.25)
+
+
 
 void static readPacket(uint32_t container, uint8_t * btn, uint8_t * value, uint16_t * data){
     *btn   = (container >> 24) & 0x000000FF;
@@ -57,5 +61,51 @@ static uint32_t makeAlarm(uint8_t cmd, uint8_t period, uint8_t hour, uint8_t min
     return container;
 }
 
+
+
+
+struct  __attribute__((__packed__)) alarm_t{
+    bool active:1;
+    uint8_t hour:5;
+    uint8_t minute:6;
+    uint8_t action:4;
+    uint8_t wday:4;
+    period_t period:4;
+};
+
+const uint16_t ALARM_LENGTH=sizeof(alarm_t)*ALARMS_COUNT;
+const uint16_t ALARMS_OFFSET=512;
+
+static void getNext(alarm_t &at){
+        switch (at.period) {
+            case ONCE_ALARM:
+            at.active=false;
+            break;
+            case WDAY_ALARM:
+             if (at.wday>=5) at.wday=1;
+             else at.wday++;
+            break;
+            case HDAY_ALARM:
+             if (at.wday==6) at.wday=0;
+             else at.wday=6;
+           break;
+            case EVERYDAY_ALARM:
+             if (at.wday==6) at.wday=0;
+             else at.wday++;
+            break;
+            case EVERYHOUR_ALARM:
+             if (at.hour>=23) at.hour=0;
+             else at.hour++;
+            break;
+            case WD1_ALARM:
+            case WD2_ALARM:
+            case WD3_ALARM:
+            case WD4_ALARM:
+            case WD5_ALARM:
+            case WD6_ALARM:
+            case WD7_ALARM:
+            break;
+        }
+    }
 
 #endif

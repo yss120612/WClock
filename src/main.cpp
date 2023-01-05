@@ -23,7 +23,8 @@ QueueHandle_t queue;
 BMP280Task * bmp280;
 
 EventGroupHandle_t flags;
-MessageBufferHandle_t message;
+MessageBufferHandle_t display_messages;
+MessageBufferHandle_t alarm_messages;
 
 
 
@@ -41,17 +42,18 @@ void setup() {
 queue= xQueueCreate(16,sizeof(event_t));
 
 flags=xEventGroupCreate();
-message=xMessageBufferCreate(100);
+display_messages=xMessageBufferCreate(100);
+alarm_messages=xMessageBufferCreate(sizeof(alarm_t)*ALARMS_COUNT);
 
 
 
-mem= new MEMTask("Memory",2048,queue);  
+mem= new MEMTask("Memory",2048,queue,alarm_messages);  
 mem->resume();
 delay(100);
 irt= new IRTask("IR",2048,queue);  
 irt->resume();
 delay(100);
-rtc = new RTCTask("rtc",4096,flags,queue,message);
+rtc = new RTCTask("rtc",4096,flags,queue,display_messages,alarm_messages);
 rtc->resume();
 delay(100);
 bmp280= new BMP280Task("BMP280",2048);  
@@ -221,6 +223,49 @@ switch(e.button){
 }
 
 
+void mem_event(event_t e){
+  uint32_t command;
+  switch (e.button){
+   case 1:
+    switch ((memaddr_t)e.data)
+    {
+      case CELL0:
+      e.count;
+      break;
+      case CELL1:
+      break;
+      case CELL2:
+      break;
+      case CELL3:
+      break;
+      case CELL4:
+      break;
+      case CELL5:
+      break;
+      case CELL6:
+      break;
+      case CELL7:
+      break;
+    }
+   break;
+   case 2://write
+      command=makePacket(2,e.count,e.data);//command,value,address
+      mem->notify(command);  
+   break; 
+   case 3://request packed
+      command=makePacket(3,0,0);
+      mem->notify(command);
+   break;
+      
+    
+  }
+} 
+
+
+
+
+
+
 
 void loop() {
   event_t ev;
@@ -229,6 +274,9 @@ if (xQueueReceive(queue,&ev,portMAX_DELAY))
   switch (ev.state){
     case ENCODER_EVENT:
     encoder_event(ev);
+    break;
+    case MEM_EVENT:
+    mem_event(ev);
     break;
     case WEB_EVENT:
     web_event(ev);
