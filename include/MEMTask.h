@@ -16,7 +16,7 @@
 class MEMTask: public Task
 {
 public:
-MEMTask(const char *name, uint32_t stack,QueueHandle_t q):Task(name, stack){que=q;}
+MEMTask(const char *name, uint32_t stack,QueueHandle_t q,MessageBufferHandle_t a):Task(name, stack){que=q;alarm_mess=a;}
 
 protected:
 
@@ -25,7 +25,7 @@ void setup() override;
 void loop() override;
 void read(uint16_t index, uint8_t* buf, uint16_t len);
 void write(uint16_t index, const uint8_t* buf, uint16_t len);
-	
+void sendBuffer();
     template<typename T> T & get(uint16_t index, T& t) {
 		read(index, (uint8_t*)&t, sizeof(T));
 		return t;
@@ -36,6 +36,7 @@ void write(uint16_t index, const uint8_t* buf, uint16_t len);
 	}
 
 QueueHandle_t que;
+MessageBufferHandle_t alarm_mess;
 //uint8_t _address;
 
 };

@@ -70,7 +70,7 @@
 						<input class="time form-control" id="time" type="text" value="" />
 						<select id="PERIOD" name="PERIOD" class="form-select" aria-label="Выбор периода">
 							<option value="1">Единожды</option>
-							<option value="2">Ежечастно</option>
+							<option value="2">Ежечасно</option>
 							<option value="3">Ежедневно</option>
 							<option value="4">Рабочие дни</option>
 							<option value="5">Выходные дни</option>
@@ -178,7 +178,7 @@
 	process();
 
 	$('.time').clockTimePicker({
-		precision:10
+		precision:5
 	});
 
 	$('.time').prop('value','12:00');
