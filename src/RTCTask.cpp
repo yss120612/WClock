@@ -1,5 +1,5 @@
 #include "RTCTask.h"
-#include "Events.h"
+//#include "Events.h"
 
 void RTCTask::setup()
 {
@@ -13,15 +13,12 @@ initAlarms();
 void RTCTask::initAlarms(){
 event_t e;
 e.state=MEM_EVENT;
-e.button=3;
+e.button=200;
 xQueueSend(que,&e,portMAX_DELAY);
 }
 
 
-void RTCTask::saveAlarms(){
-  xMessageBufferSend( alarm_mess,copy_alarm,ALARM_LENGTH,1000);
-  
-}
+
 
 
 void RTCTask::cleanup()
@@ -52,10 +49,6 @@ void RTCTask::alarm(alarm_t &a){
       rtc->setAlarm2(dt+TimeSpan(a.wday+1>6?0:a.wday+1,a.hour,a.minute,0),DS3231_A2_Day);
     break;
   }
-  // dt=rtc->getAlarm2();
-  // Serial.print(a.wday);
-  // Serial.print(" DW=");
-  // Serial.println(dt.dayOfTheWeek());
 }
 
 
@@ -65,7 +58,6 @@ void RTCTask::alarm(alarm_t &a){
 void RTCTask::alarmFired(uint8_t an){
 rtc->clearAlarm(an);
 DateTime dt;
-
 if (an==1){
 //Serial.println("Alarm 1 fired");
 }else if(an==2){
@@ -99,15 +91,22 @@ for (int i=0;i<ALARMS_COUNT;i++){
 
   }
 }
-
 if (result<ALARMS_COUNT) 
 {
 getNext(alarms[result]);
+saveAlarm(result);
 }
 
 return result;
 }
 
+void RTCTask::saveAlarm(uint8_t idx){
+event_t ev;
+ev.state=MEM_EVENT;
+ev.button=idx+100;
+ev.alarm=alarms[idx];
+xQueueSend(que,&ev,portMAX_DELAY);
+}
 
 bool RTCTask::setupAlarm(uint8_t idx, uint8_t act, uint8_t h, uint8_t m,  period_t p){
 if (idx>=ALARMS_COUNT) return false;
@@ -139,6 +138,7 @@ else if (nmin>=amin) {dw=dw==6?0:6;}
 
 alarms[idx].hour=h;
 alarms[idx].wday=dw;
+saveAlarm(idx);
 return true;
 }
 
@@ -168,8 +168,6 @@ for (uint8_t i=0;i<ALARMS_COUNT;i++){
     break;
   }
 cdiff=amin-nmin;  
-Serial.print(" altrm_t=");
-Serial.println(sizeof(alarm_t));
 Serial.print(" Diff=");
 Serial.println(cdiff);
 if (cdiff<min_diff){
@@ -177,12 +175,9 @@ if (cdiff<min_diff){
   index=i;
 }
 }
-
 if (index<ALARMS_COUNT) {
 alarm(alarms[index]);
 }
-// Serial.print("Arm timer=");
-// Serial.println(index);
 return index;
 }
 
@@ -206,7 +201,16 @@ void RTCTask::loop()
         switch (comm)
         
         {
-        case 11:
+        case 20:
+        case 21:
+        case 22:
+        case 23:
+        case 24:
+        case 25:
+        case 26:
+        case 27:
+        case 28:
+        case 29:
           h = (data >>8) & 0x000000FF; 
           m = data & 0x000000FF;
           d = (period_t)(act-1);  
@@ -214,11 +218,10 @@ void RTCTask::loop()
           //else alarm(h,m,d); 
           Serial.print("Period=");
           Serial.println(d);
-          setupAlarm(0,1,h,m,d);
+          setupAlarm(comm-20,1,h,m,d);
           refreshAlarms();
           break;
         case 10:{
-
             char buf[100];
             size_t si;
             int res;

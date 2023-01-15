@@ -1,6 +1,6 @@
 #include "HTTPTask.h"
 #include <Update.h>
-#include "Events.h"
+//#include "Events.h"
 #include <Wire.h>
 
 void HTTPTask::cleanup(){
@@ -197,7 +197,7 @@ void HTTPTask::var(String n, String v)
 		d=v.substring(v.indexOf('-')+1).toInt();
 		// Serial.print("Period=");
 		// Serial.println(d);
-		ev.data=makeAlarm(11,d,h,m); 
+		ev.data=makeAlarm(20,d,h,m); 
 		//ev.count=v.equals(F("true"));
 	}
 	else if (n.equals("REL2"))

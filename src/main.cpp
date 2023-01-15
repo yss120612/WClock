@@ -252,7 +252,19 @@ void mem_event(event_t e){
       command=makePacket(2,e.count,e.data);//command,value,address
       mem->notify(command);  
    break; 
-   case 3://request packed
+   case 100:
+   case 101:
+   case 102:
+   case 103:
+   case 104:
+   case 105:
+   case 106:
+   case 107:
+   case 108:
+   case 109:
+   
+   break;
+   case 200://request packed
       command=makePacket(3,0,0);
       mem->notify(command);
    break;
