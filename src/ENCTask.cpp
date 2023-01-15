@@ -1,7 +1,8 @@
 #include "ENCTask.h"
 #include <functional>
 #include <FunctionalInterrupt.h>
-#include "Events.h"
+//#include "Events.h"
+
 void ENCTask::setup(){
  gpio_set_direction(ENCBTN, GPIO_MODE_INPUT);
  gpio_set_direction(ENCS1, GPIO_MODE_INPUT);

@@ -1,6 +1,7 @@
 #ifndef __SETTINGS__
 #define __SETTINGS__
 #include <driver/ledc.h>
+//#include <variant>
 
 #define TIME_OFFSET 8 //смещение временной зоны
 #define LONG_TIME  60000*60*24 //one per day
@@ -29,7 +30,8 @@ enum flags_t : uint8_t { FLAG_WIFI = 1, FLAG_MQTT = 2 };
 
 #define  AT24C32_ADDRESS 0x57
 #define  AT24C32_OFFSET 0x78
-enum memaddr_t : uint16_t {CELL0,CELL1,CELL2,CELL3,CELL4,CELL5,CELL6,CELL7}
+
+enum memaddr_t : uint16_t {CELL0,CELL1,CELL2,CELL3,CELL4,CELL5,CELL6,CELL7};
 
 #define  EEPROM_PAGE_SIZE  32
 #define  EEPROM_WORK_SIZE  EEPROM_PAGE_SIZE / 2
@@ -66,11 +68,11 @@ static uint32_t makeAlarm(uint8_t cmd, uint8_t period, uint8_t hour, uint8_t min
 
 struct  __attribute__((__packed__)) alarm_t{
     bool active:1;
-    uint8_t hour:5;
+    uint8_t hour:6;
     uint8_t minute:6;
-    uint8_t action:4;
+    uint8_t action:6;
     uint8_t wday:4;
-    period_t period:4;
+    period_t period:5;
 };
 
 const uint16_t ALARM_LENGTH=sizeof(alarm_t)*ALARMS_COUNT;
@@ -107,5 +109,19 @@ static void getNext(alarm_t &at){
             break;
         }
     }
+
+
+struct event_t {
+    buttonstate_t state;
+    uint16_t button;
+    uint8_t count;
+    //int8_t type;
+    union{
+    uint32_t data;
+    alarm_t alarm;
+    };
+
+  //  volatile long wait_time;
+  };
 
 #endif

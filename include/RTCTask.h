@@ -26,7 +26,7 @@ protected:
     //void alarm(uint8_t hh,uint8_t mm);
     //void alarm(uint8_t hh,uint8_t mm,uint8_t dw);
     void initAlarms();
-    void saveAlarms();
+    void saveAlarm(uint8_t idx);
     uint8_t findAndSetNext(DateTime dt, Ds3231Alarm2Mode mode);
     bool setupAlarm(uint8_t idx, uint8_t act, uint8_t h, uint8_t m,  period_t p);
     uint8_t refreshAlarms();
