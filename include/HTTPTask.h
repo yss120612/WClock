@@ -17,6 +17,7 @@ void cleanup() override;
 void setup() override;
 void loop() override;
 void handleRoot(AsyncWebServerRequest * request);
+void handleReboot(AsyncWebServerRequest * request);
 void handleMain(AsyncWebServerRequest * request);
 void handleFile(String path,String type, AsyncWebServerRequest *request);
 void handleNotFound(AsyncWebServerRequest * request);
@@ -39,3 +40,4 @@ EventGroupHandle_t flg;
 AsyncWebServer * server;
 };
 #endif
+

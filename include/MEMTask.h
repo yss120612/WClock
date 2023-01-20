@@ -52,7 +52,7 @@ void write_state();
 QueueHandle_t que;
 MessageBufferHandle_t alarm_mess;
 SystemState_t sstate;
-const uint8_t version=2;
+
 //uint8_t _address;
 
 };

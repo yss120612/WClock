@@ -38,8 +38,8 @@ void LEDTask::setup()
       led[i] = NULL;
   last_time = 0;
 
-  setLedMode(0, BLINK_05HZ);
-  setLedMode(1, BLINK_4HZ);
+  setLedMode(0, BLINK_OFF);
+  setLedMode(1, BLINK_OFF);
 }
 
  void LEDTask::setLedMode(uint8_t ledN, blinkmode_t bm){
@@ -64,9 +64,12 @@ void LEDTask::setup()
 void LEDTask::loop()
 {
   uint32_t command;
+  notify_t nt;
+  memcpy(&nt,&command,sizeof(command));
   if (xTaskNotifyWait(0, 0, &command, portMAX_DELAY))
   {
-    switch (command)
+    memcpy(&nt,&command,sizeof(command));
+    switch (nt.title)
     {
     case 17:
       setLedMode(1, BLINK_FADEINOUT);
@@ -102,16 +105,17 @@ void LEDTask::loop()
 
     case 111:
       //setLedMode(0, BLINK_4HZ);
-      setLedMode(1, BLINK_4HZ);
+      setLedMode(nt.packet.var, BLINK_4HZ);
       break;
     
     case 112:
       //setLedMode(0, BLINK_4HZ);
-      setLedMode(1, BLINK_FADEINOUT);
+      setLedMode(nt.packet.var, BLINK_FADEINOUT);
       break;
     case 113:
       //setLedMode(0, BLINK_4HZ);
-      setLedMode(1, BLINK_OFF);
+      setLedMode(nt.packet.var, BLINK_OFF);
+      //setLedMode(1, BLINK_OFF);
       break;
   }
   }
@@ -221,10 +225,10 @@ void LEDTask::timerCallback()
 
         ledc_set_duty(SPEED_MODE, led[i]->getChannel(), val);
         ledc_update_duty(SPEED_MODE, led[i]->getChannel());
-        Serial.print("val=");
-        Serial.println(val);
-        Serial.print("index=");
-        Serial.println(index);
+        // Serial.print("val=");
+        // Serial.println(val);
+        // Serial.print("index=");
+        // Serial.println(index);
       }
     }
   }

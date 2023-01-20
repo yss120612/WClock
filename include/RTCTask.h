@@ -30,6 +30,8 @@ protected:
     uint8_t findAndSetNext(DateTime dt, Ds3231Alarm2Mode mode);
     bool setupAlarm(uint8_t idx, uint8_t act, uint8_t h, uint8_t m,  period_t p);
     uint8_t refreshAlarms();
+    void resetAlarms();
+    
     void alarm(alarm_t &a);
  
 
@@ -47,6 +49,7 @@ protected:
     MessageBufferHandle_t alarm_mess;
     MessageBufferHandle_t disp_mess;
     alarm_t alarms[ALARMS_COUNT];
-    alarm_t copy_alarms[ALARMS_COUNT];
+    //alarm_t copy_alarms[ALARMS_COUNT];
+    bool init_complete;
 };
 #endif 

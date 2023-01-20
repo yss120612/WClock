@@ -43,7 +43,7 @@ queue= xQueueCreate(16,sizeof(event_t));
 
 flags=xEventGroupCreate();
 display_messages=xMessageBufferCreate(100);
-alarm_messages=xMessageBufferCreate(sizeof(alarm_t)*ALARMS_COUNT);
+alarm_messages=xMessageBufferCreate(ALARM_LENGTH+4);//=length label
 
 
 
@@ -136,15 +136,35 @@ switch(e.data){
 
 void web_event(event_t e){
 uint32_t cmd;
+notify_t nt;
 switch(e.button){
   case 1:
-     //arm alarm 
-     //cmd= e.data;
-     rtc->notify(e.data);
-    //Serial.println("encoder clock");
+     nt.title=1;
+     nt.alarm=e.alarm;
+     memcpy(&cmd,&nt,sizeof(cmd));
+     //Serial.printf("from web %d:%d Period=%d Wday=%d Action=%d \n",nt.alarm.hour,nt.alarm.minute,nt.alarm.period, nt.alarm.wday,nt.alarm.action);
+     rtc->notify(cmd);
   break;
   case 2:
-    Serial.println("encoder unclock");
+     nt.title=11;
+     nt.packet.var=0;
+     nt.packet.value=0;
+     memcpy(&cmd,&nt,sizeof(cmd));
+     rtc->notify(cmd);
+  break;
+  case 3:
+     nt.title=12;
+     nt.packet.var=0;
+     nt.packet.value=0;
+     memcpy(&cmd,&nt,sizeof(cmd));
+     rtc->notify(cmd);
+  break;
+  case 4:
+     nt.title=13;
+     nt.packet.var=0;
+     nt.packet.value=0;
+     memcpy(&cmd,&nt,sizeof(cmd));
+     rtc->notify(cmd);
   break;
 }
 }
@@ -152,19 +172,24 @@ switch(e.button){
 
 void btn_event(event_t e){
   uint32_t cmd;
+  notify_t nt;
   switch (e.state){
     case BTN_CLICK:
       Serial.print("multiclick:");
       Serial.print(e.count);
       Serial.println(" click");
     if(e.count==5) {
-      cmd=makeAlarm(11,3,10,12);
+      //cmd=makeAlarm(11,3,10,12);
      //cmd= makePacket(11,0,(11U<<24)&0xFF000000 |(01U<<16)&0x00FF0000 | (2U & 0x00000FFFF));
-     rtc->notify(cmd);
+     //rtc->notify(cmd);
     } 
     if (e.count==3) Serial.println(getI2Cdevices());
     if (e.count==4) {
-      cmd= makePacket(67,0,0);
+      nt.title=67;
+      nt.packet.var=0;
+      nt.packet.value=0;
+      memcpy(&cmd,&nt,sizeof(nt));
+      //cmd= makePacket(67,0,0);
       bmp280->notify(cmd);}
       break;;
     break;
@@ -179,29 +204,54 @@ void btn_event(event_t e){
 
 
 void rtc_event(event_t e){
-  uint32_t cmd;
-  uint8_t h;
-  uint8_t m;
-  uint8_t d;
-  switch (e.button){
-   case 0://вс
-   case 6://сб
-
-   case 1://пн
+switch (e.button){
+   case 0:
+   case 1:
    case 2:
    case 3:
    case 4:
-   case 5://пт
-      d=(e.data>>16) & 0x00FF;
-      h=(e.data>>8) & 0x00FF;
-      m=e.data & 0x00FF;
-      Serial.print("Event Alarm 2 at - day:");
-      Serial.print(d);
+   case 5:
+   case 6:
+   case 7:
+   case 8:
+   case 9:
+      Serial.print("Event Alarm 2 action:");
+      Serial.print(e.alarm.action);
       Serial.print( ", time ");
-      Serial.print(h);
+      Serial.print(e.alarm.hour);
       Serial.print(":");
-      Serial.println(m);
+      Serial.println(e.alarm.minute);
    break;
+    
+  }
+} 
+
+
+void led_event(event_t e){
+  notify_t nt;
+  uint32_t comm;
+  switch (e.button){
+   case 111:
+    nt.title=111;
+    nt.packet.var=0;
+    nt.packet.value=0;
+    memcpy(&comm,&nt,sizeof(nt));
+    leds->notify(comm);  
+  break; 
+  case 112:
+    nt.title=112;
+    nt.packet.var=0;
+    nt.packet.value=0;
+    memcpy(&comm,&nt,sizeof(nt));
+    leds->notify(comm);  
+  break; 
+   case 113:
+    nt.title=113;
+    nt.packet.var=0;
+    nt.packet.value=0;
+    memcpy(&comm,&nt,sizeof(nt));
+    leds->notify(comm);  
+  break;
     
   }
 } 
@@ -225,31 +275,17 @@ switch(e.button){
 
 void mem_event(event_t e){
   uint32_t command;
+  notify_t nt;
   switch (e.button){
    case 1:
-    switch ((memaddr_t)e.data)
-    {
-      case CELL0:
-      e.count;
-      break;
-      case CELL1:
-      break;
-      case CELL2:
-      break;
-      case CELL3:
-      break;
-      case CELL4:
-      break;
-      case CELL5:
-      break;
-      case CELL6:
-      break;
-      case CELL7:
-      break;
-    }
-   break;
+   break;     
    case 2://write
-      command=makePacket(2,e.count,e.data);//command,value,address
+      nt.title=2;
+      nt.packet.var=e.count;
+      nt.packet.value=e.data;
+      memcpy(&nt,&command,sizeof(nt));
+      //command=makePacket(2,e.count,e.data);//command,value,address
+      
       mem->notify(command);  
    break; 
    case 100:
@@ -262,10 +298,25 @@ void mem_event(event_t e){
    case 107:
    case 108:
    case 109:
-   
+        nt.title=e.button;
+        nt.alarm=e.alarm;
+        memcpy(&command,&nt,sizeof(nt));
+        
+
+        mem->notify(command);
    break;
    case 200://request packed
-      command=makePacket(3,0,0);
+      nt.title=200;
+      nt.packet.var=0;
+      nt.packet.value=0;
+      memcpy(&command,&nt,sizeof(nt));
+      mem->notify(command);
+   break;
+   case 201://reset and request packed
+      nt.title=201;
+      nt.packet.var=0;
+      nt.packet.value=0;
+      memcpy(&command,&nt,sizeof(nt));
       mem->notify(command);
    break;
       
@@ -303,6 +354,10 @@ if (xQueueReceive(queue,&ev,portMAX_DELAY))
     case RTC_EVENT:
       rtc_event(ev);
     break;
+    case LED_EVENT:
+      led_event(ev);
+    break;
+
   }
   // switch(ev.button){
   //   case 17:leds->notify(ev.button);break;  

@@ -7,7 +7,9 @@ rtc= new RTC_DS3231();
 rtc->begin();
 fast_time_interval=true;
 last_sync=0;
+vTaskDelay(pdMS_TO_TICKS(5000));
 initAlarms();
+init_complete=false;
 }
 
 void RTCTask::initAlarms(){
@@ -17,7 +19,13 @@ e.button=200;
 xQueueSend(que,&e,portMAX_DELAY);
 }
 
-
+void RTCTask::resetAlarms(){
+  event_t e;
+  e.state=MEM_EVENT;
+  e.button=201;
+  init_complete=false;
+  xQueueSend(que,&e,portMAX_DELAY);
+}
 
 
 
@@ -56,7 +64,7 @@ void RTCTask::alarm(alarm_t &a){
 
 
 void RTCTask::alarmFired(uint8_t an){
-rtc->clearAlarm(an);
+
 DateTime dt;
 if (an==1){
 //Serial.println("Alarm 1 fired");
@@ -67,7 +75,7 @@ uint8_t idx=findAndSetNext(dt,rtc->getAlarm2Mode());
 if (idx<ALARMS_COUNT){
 ev.state=RTC_EVENT;
 ev.button=alarms[idx].action;
-ev.data=makeAlarm(0,rtc->getAlarm2Mode()==DS3231_A2_Hour?99:dt.dayOfTheWeek(),dt.hour(),dt.minute());
+ev.alarm=alarms[idx];
 xQueueSend(que,&ev,portMAX_DELAY);
 idx=refreshAlarms();
 }
@@ -145,6 +153,8 @@ return true;
 
 //find and set next nearest alarm
 uint8_t RTCTask::refreshAlarms(){
+rtc->clearAlarm(1);
+rtc->clearAlarm(2);
 uint8_t index=ALARMS_COUNT;
 uint16_t amin,nmin,cdiff,min_diff=WEEK+1;//week and one minutes
 DateTime d=rtc->now();
@@ -168,8 +178,8 @@ for (uint8_t i=0;i<ALARMS_COUNT;i++){
     break;
   }
 cdiff=amin-nmin;  
-Serial.print(" Diff=");
-Serial.println(cdiff);
+Serial.printf("Diff=%d ", cdiff);
+Serial.print(printAlarm(alarms[i]).c_str());
 if (cdiff<min_diff){
   min_diff=cdiff;
   index=i;
@@ -184,41 +194,21 @@ return index;
 void RTCTask::loop()
 {
     
-    if (xMessageBufferReceive(alarm_mess,copy_alarms,ALARM_LENGTH,1000)==ALARM_LENGTH){
-      memcpy(alarms,copy_alarms,ALARM_LENGTH);
+    if (xMessageBufferReceive(alarm_mess,&alarms[0],ALARM_LENGTH,!init_complete?portMAX_DELAY:0)==ALARM_LENGTH){
       refreshAlarms();  
+      init_complete=true;
     }
       
     uint32_t command;
-    if (xTaskNotifyWait(0, 0, &command, 1000))
+    if (xTaskNotifyWait(0, 0, &command, init_complete?pdMS_TO_TICKS(1000):0))
     {
-        uint8_t comm, act;
-        uint16_t data;
-        uint8_t h; 
-        uint8_t m;
-        period_t d;  
-        readPacket(command, &comm, &act, &data);
-        switch (comm)
-        
+        notify_t nt;    
+        memcpy(&nt,&command,sizeof(command));
+        switch (nt.title)
         {
-        case 20:
-        case 21:
-        case 22:
-        case 23:
-        case 24:
-        case 25:
-        case 26:
-        case 27:
-        case 28:
-        case 29:
-          h = (data >>8) & 0x000000FF; 
-          m = data & 0x000000FF;
-          d = (period_t)(act-1);  
-          //if (d>=7) alarm(h,m);
-          //else alarm(h,m,d); 
-          Serial.print("Period=");
-          Serial.println(d);
-          setupAlarm(comm-20,1,h,m,d);
+        case 1:
+          Serial.printf("from Web active=%d %d:%d Period=%d Wday=%d Action=%d \n",nt.alarm.active, nt.alarm.hour,nt.alarm.minute,nt.alarm.period, nt.alarm.wday,nt.alarm.action);   
+          setupAlarm(nt.alarm.action,nt.alarm.action,nt.alarm.hour,nt.alarm.minute,nt.alarm.period);
           refreshAlarms();
           break;
         case 10:{
@@ -235,16 +225,32 @@ void RTCTask::loop()
             }
             si=xMessageBufferSend(disp_mess,buf,res,portMAX_DELAY);
             break;}
+        case 11:
+        {
+            for (uint8_t ii=0;ii<ALARMS_COUNT;ii++){
+                Serial.print(printAlarm(alarms[ii]).c_str());
+            }
+        break;  
         }
+        case 12:{
+        DateTime dtm=rtc->getAlarm2();
+              Serial.printf("Active alarm=%02d:%02d Wday=%d\n",dtm.hour(),dtm.minute(),dtm.dayOfTheWeek());
+        break;   
+        } 
+        case 13:
+          Serial.print("Reset alarms");
+          resetAlarms();
+          refreshAlarms();
+          
+        break;  
+     }
     }
-
 if (rtc->alarmFired(1)){
 alarmFired(1);
 }
 if (rtc->alarmFired(2)){
 alarmFired(2);
 }  
-//for (uint8_t i=0;i<ALARMS_COUNT;i++) set_if_need(alarms[i]);
 
 
 if (xEventGroupWaitBits(flg, FLAG_WIFI, pdFALSE, pdTRUE, portMAX_DELAY) & FLAG_WIFI) {    

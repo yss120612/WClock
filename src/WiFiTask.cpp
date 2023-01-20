@@ -20,22 +20,16 @@ void WiFiTask::wifiOnEvent(WiFiEvent_t event) {
   uint32_t result;
   switch (event) {
       case WIFI_EVENT_STA_WPS_ER_SUCCESS:
-      portENTER_CRITICAL(&_mutex);
-      Serial.print("With IP ");
-      Serial.println(WiFi.localIP());
-      portEXIT_CRITICAL(&_mutex);
-      xEventGroupSetBits(flg, FLAG_WIFI);
-      result=112;
-      xQueueSend(que,&result,portMAX_DELAY);
+    
     break;
     case WIFI_EVENT_STA_DISCONNECTED:
         Serial.println("WiFi Сonnection Loss!");
         xEventGroupClearBits(flg, FLAG_WIFI);
-        result=113;
-        xQueueSend(que,&result,portMAX_DELAY);
+        //result=113;
+        //xQueueSend(que,&result,portMAX_DELAY);
     break;
     case WIFI_EVENT_STA_CONNECTED:
-        Serial.println("Connected to WiFi!!!");
+        //Serial.println("Connected to WiFi!!!");
     break;
     default:
     break;
@@ -50,14 +44,10 @@ result.state=LED_EVENT;
 
     if (! WiFi.isConnected()) {
       WiFi.begin(WIFI_SSID, WIFI_PSWD);
-      portENTER_CRITICAL(&_mutex);
-      Serial.print("Connecting to SSID \"");
-      Serial.print(WIFI_SSID);
-      Serial.println("\"...");
-      portEXIT_CRITICAL(&_mutex);
+      Serial.printf("Connecting to SSID \"%s\"...\n",WIFI_SSID);
       result.button=111;
-
       xQueueSend(que,&result,portMAX_DELAY);
+
       {// wait connection WIFI_CONNECT_WAIT
         uint32_t start = millis();
         while ((! WiFi.isConnected()) && (millis() - start < WIFI_CONNECT_WAIT)) {
@@ -65,12 +55,21 @@ result.state=LED_EVENT;
         }
       }
       if (WiFi.isConnected()) {
-        result.button=113;
-        xQueueSend(que,&result,portMAX_DELAY);
+        portENTER_CRITICAL(&_mutex);
+      Serial.print("Connected to WiFi with IP ");
+      Serial.println(WiFi.localIP());
+      portEXIT_CRITICAL(&_mutex);
+      xEventGroupSetBits(flg, FLAG_WIFI);
+      result.button=112;
+      xQueueSend(que,&result,portMAX_DELAY);
+
+        //result.button=112;
+        //xQueueSend(que,&result,portMAX_DELAY);
         } else {
         WiFi.disconnect();
         Serial.println("Failed to connect to WiFi!");
         result.button=113;
+        xEventGroupClearBits(flg, FLAG_WIFI);
         xQueueSend(que,&result,portMAX_DELAY);
         vTaskDelay(pdMS_TO_TICKS(WIFI_TIMEOUT));
       }

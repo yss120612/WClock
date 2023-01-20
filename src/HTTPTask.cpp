@@ -16,6 +16,7 @@ if (!server){
     return;
 }
 server->on("/", std::bind(&HTTPTask::handleRoot, this, std::placeholders::_1));
+server->on("/reboot", std::bind(&HTTPTask::handleReboot, this, std::placeholders::_1));
 server->on("/upd", std::bind(&HTTPTask::handleUpd, this, std::placeholders::_1));
 server->on("/log", std::bind(&HTTPTask::handleUpd, this, std::placeholders::_1));
 server->on("/main", std::bind(&HTTPTask::handleMain, this, std::placeholders::_1));
@@ -64,7 +65,7 @@ server->begin();
 
 
 void HTTPTask::loop(){
-   delay(10); 
+   vTaskDelay(pdTICKS_TO_MS(100)); 
    
 }
     
@@ -74,6 +75,15 @@ void HTTPTask::handleRoot(AsyncWebServerRequest * request) {
 	if (!request->authenticate("Yss1", "bqt3"))
 		return request->requestAuthentication();
 		handleFile("/index.htm","text/html", request);
+}
+
+
+void HTTPTask::handleReboot(AsyncWebServerRequest * request) {
+	
+	if (!request->authenticate("Yss1", "bqt3"))
+		return request->requestAuthentication();
+	request->redirect("/");
+	ESP.restart();
 }
 
 
@@ -122,6 +132,7 @@ void HTTPTask::handleUpdate(AsyncWebServerRequest *request, const String& filena
     if (!Update.end(true)){
 	  
     } else {
+		
 		ESP.restart();
     }
   }
@@ -186,18 +197,37 @@ void HTTPTask::handleW2A(AsyncWebServerRequest * request)
 void HTTPTask::var(String n, String v)
 {
      event_t ev;
-	 uint8_t h=9,m=50,d=3;
+	 uint8_t h=9,m=50,d=3,nn=0;
      ev.state=WEB_EVENT;
   	if (n.equals("BTN1"))
 	{
 		ev.button=1;
 		//Serial.println(v);
 		h=v.substring(0,v.indexOf(':')).toInt();
-		m=v.substring(v.indexOf(':')+1,v.indexOf('-')).toInt();
-		d=v.substring(v.indexOf('-')+1).toInt();
-		// Serial.print("Period=");
-		// Serial.println(d);
-		ev.data=makeAlarm(20,d,h,m); 
+		m=v.substring(v.indexOf(':')+1,v.indexOf('*')).toInt();
+		d=v.substring(v.indexOf('*')+1,v.indexOf('-')).toInt();
+		nn=v.substring(v.indexOf('-')+1).toInt();
+		ev.alarm.hour=h;
+		ev.alarm.minute=m;
+		ev.alarm.period=(period_t)d;
+		ev.alarm.action=nn;
+	}
+	else if (n.equals("BTN2"))
+	{
+		ev.button=2;
+		//=makeAlarm(20,d,h,m); 
+		//ev.count=v.equals(F("true"));
+	}
+	else if (n.equals("BTN3"))
+	{
+		ev.button=3;
+		//=makeAlarm(20,d,h,m); 
+		//ev.count=v.equals(F("true"));
+	}
+	else if (n.equals("BTN4"))
+	{
+		ev.button=4;
+		//=makeAlarm(20,d,h,m); 
 		//ev.count=v.equals(F("true"));
 	}
 	else if (n.equals("REL2"))
