@@ -45,7 +45,6 @@ void RTCTask::alarm(alarm_t &a){
     case  EVERYHOUR_ALARM:
     case  EVERYDAY_ALARM:
       rtc->setAlarm2(dt+TimeSpan(0,a.hour,a.minute,0),DS3231_A2_Hour);  
-      break;
     case  WDAY_ALARM:
     case  HDAY_ALARM:
     case  WD1_ALARM:
@@ -69,10 +68,8 @@ void RTCTask::alarmFired(uint8_t an){
 DateTime dt;
 if (an==1){
 //Serial.println("Alarm 1 fired");
-rtc->clearAlarm(1);
 }else if(an==2){
 dt=rtc->getAlarm2();
-rtc->clearAlarm(2);
 event_t ev;
 uint8_t idx=findAndSetNext(dt,rtc->getAlarm2Mode());
 if (idx<ALARMS_COUNT){
@@ -137,7 +134,7 @@ else if (p==WDAY_ALARM) {
 if (dw>5||dw==0) {dw=1;} 
 else if (nmin>=amin) {dw=dw<5?dw+1:1;}
 }else if (p==HDAY_ALARM) {
-if (dw>0 && dw<6) {dw=6;} 
+if (dw<6 && dw!=0) {dw=6;} 
 else if (nmin>=amin) {dw=dw==6?0:6;}
 }else if (p==ONCE_ALARM || p==EVERYDAY_ALARM){
 
@@ -177,16 +174,12 @@ for (uint8_t i=0;i<ALARMS_COUNT;i++){
   default:
   amin+=(alarms[i].wday*DAY+((d.dayOfTheWeek()>alarms[i].wday)?WEEK:0));
   nmin+=d.dayOfTheWeek()*DAY;
-  if (amin<=nmin){ 
-  amin+=WEEK;
-  }
+  if (amin<=nmin) amin+=WEEK;
     break;
   }
 cdiff=amin-nmin;  
-#ifdef DEBUGG
 Serial.printf("Diff=%d ", cdiff);
 Serial.print(printAlarm(alarms[i]).c_str());
-#endif
 if (cdiff<min_diff){
   min_diff=cdiff;
   index=i;
@@ -200,41 +193,22 @@ return index;
 
 void RTCTask::loop()
 {
-
-     
-    //if (xMessageBufferReceive(alarm_mess,&ss,SSTATE_LENGTH,!init_complete?portMAX_DELAY:0)==SSTATE_LENGTH){
-      SystemState_t sst;
-      if (xMessageBufferReceive(alarm_mess,&sst,SSTATE_LENGTH,!init_complete?pdMS_TO_TICKS(1000):0)==SSTATE_LENGTH){
-      memcpy(alarms,sst.alr,sizeof(alarm_t)*ALARMS_COUNT);
+    
+    if (xMessageBufferReceive(alarm_mess,&alarms[0],ALARM_LENGTH,!init_complete?portMAX_DELAY:0)==ALARM_LENGTH){
       refreshAlarms();  
       init_complete=true;
-      event_t ev;
-      ev.state=MEM_EVENT;//init other devices
-      ev.button=203;
-      ev.data=sst.rel[0] & 1 | sst.rel[1]<<1 & 2 | sst.rel[2]<<2 & 4 | sst.rel[3]<<3 & 8; 
-      xQueueSend(que,&ev,portMAX_DELAY);
-      ev.button=204;
-      ev.data=sst.br[2].value<<24 & 0xFF000000 | sst.br[1].value<<16 & 0x00FF0000 | sst.br[0].value << 8 & 0x0000FF00 | sst.br[2].stste << 4 & 0x000000F0 | sst.br[1].stste  & 0x0000000F;
-      ev.count=sst.br[0].stste;
-      xQueueSend(que,&ev,portMAX_DELAY);
     }
       
     uint32_t command;
-    notify_t nt;   
     if (xTaskNotifyWait(0, 0, &command, init_complete?pdMS_TO_TICKS(1000):0))
     {
-         
+        notify_t nt;    
         memcpy(&nt,&command,sizeof(command));
         switch (nt.title)
         {
         case 1:
-        
+          Serial.printf("from Web active=%d %d:%d Period=%d Wday=%d Action=%d \n",nt.alarm.active, nt.alarm.hour,nt.alarm.minute,nt.alarm.period, nt.alarm.wday,nt.alarm.action);   
           setupAlarm(nt.alarm.action,nt.alarm.action,nt.alarm.hour,nt.alarm.minute,nt.alarm.period);
-          #ifdef DEBUGG
-          portENTER_CRITICAL(&_mutex);
-          Serial.print(printAlarm(alarms[nt.alarm.action]).c_str());   
-          portEXIT_CRITICAL(&_mutex);
-        #endif
           refreshAlarms();
           break;
         case 10:{
@@ -253,33 +227,21 @@ void RTCTask::loop()
             break;}
         case 11:
         {
-          #ifdef DEBUGG
             for (uint8_t ii=0;ii<ALARMS_COUNT;ii++){
-              
                 Serial.print(printAlarm(alarms[ii]).c_str());
             }
-            #endif
         break;  
         }
         case 12:{
         DateTime dtm=rtc->getAlarm2();
-        #ifdef DEBUGG
               Serial.printf("Active alarm=%02d:%02d Wday=%d\n",dtm.hour(),dtm.minute(),dtm.dayOfTheWeek());
-              #endif
         break;   
-
         } 
         case 13:
-        #ifdef DEBUGG
           Serial.print("Reset alarms");
-          #endif
           resetAlarms();
           refreshAlarms();
-        break;  
-        case 14:
-        #ifdef DEBUGG
-          Serial.print(printTime());
-        #endif
+          
         break;  
      }
     }
@@ -291,8 +253,7 @@ alarmFired(2);
 }  
 
 
-//if (xEventGroupWaitBits(flg, FLAG_WIFI, pdFALSE, pdTRUE, portMAX_DELAY) & FLAG_WIFI) {    
-if (xEventGroupWaitBits(flg, FLAG_WIFI, pdFALSE, pdTRUE,pdMS_TO_TICKS(1000)) & FLAG_WIFI) {    
+if (xEventGroupWaitBits(flg, FLAG_WIFI, pdFALSE, pdTRUE, portMAX_DELAY) & FLAG_WIFI) {    
 unsigned long t= millis();    
 if (t < last_sync) last_sync=t;
   if (last_sync==0 || t - last_sync > (fast_time_interval ? SHORT_TIME : LONG_TIME))
@@ -304,12 +265,6 @@ if (t < last_sync) last_sync=t;
 
 }
 
-
-String RTCTask::printTime()
-{
-    DateTime d=rtc->now();
-    return d.timestamp();
-}
 bool RTCTask::update_time_from_inet()
 {
   WiFiUDP *ntpUDP;
@@ -323,9 +278,7 @@ bool RTCTask::update_time_from_inet()
   {
     DateTime d(timeClient->getEpochTime());
     rtc->adjust(d);
-    #ifdef DEBUGG
     Serial.println("Success update time from inet. Time is :" + rtc->now().timestamp());
-    #endif
   }
     
 

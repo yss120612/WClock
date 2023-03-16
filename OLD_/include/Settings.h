@@ -1,7 +1,6 @@
 #ifndef __SETTINGS__
 #define __SETTINGS__
 #include <driver/ledc.h>
-
 //#include <variant>
 
 #define TIME_OFFSET 8 //смещение временной зоны
@@ -18,7 +17,7 @@
 #define DOUBLECLICK 700
 #define VER 5
 
-const uint8_t band_pins[]={GPIO_NUM_33,GPIO_NUM_32,0,0};
+const uint8_t pins[]={GPIO_NUM_33,GPIO_NUM_32,0,0};
 enum blinkmode_t { BLINK_OFF, BLINK_ON, BLINK_TOGGLE, BLINK_05HZ, BLINK_1HZ, BLINK_2HZ, BLINK_4HZ, BLINK_FADEIN, BLINK_FADEOUT, BLINK_FADEINOUT, BLINK_SUNRAISE,BLINK_SUNSET };
 const ledc_channel_t channels[]={LEDC_CHANNEL_0,LEDC_CHANNEL_1,LEDC_CHANNEL_2,LEDC_CHANNEL_3};
 enum buttonstate_t : uint8_t { NONE_EVENT, BTN_CLICK, BTN_LONGCLICK, PULT_BUTTON, WEB_EVENT, MEM_EVENT,DISP_EVENT, LED_EVENT,ENCODER_EVENT,RTC_EVENT };
@@ -54,13 +53,8 @@ enum flags_t : uint8_t { FLAG_WIFI = 1, FLAG_MQTT = 2 };
 //     return container;
 // }
 
-//const uint8_t band_pins[] = {GPIO_NUM_25, GPIO_NUM_33, GPIO_NUM_32, 0};
 
 #define ALARMS_COUNT 10
-#define LEDS_COUNT 2
-
-#define MAX_CS_PIN GPIO_NUM_5
-
 const uint16_t WEEK=10080;//minutes in week
 const uint16_t DAY=1440;// minutes in day
 
@@ -159,25 +153,6 @@ static void getNext(alarm_t &at){
         return str;
     }
 
-struct __attribute__((__packed__)) led_state_t
-{
-  uint8_t value:8;
-  blinkmode_t stste:8;
-};
-
-#define LEDS_COUNT 3
-#define RELAYS_COUNT 4
-
-struct __attribute__((__packed__)) SystemState_t
-{
-    uint8_t version : 8;
-    bool rel[RELAYS_COUNT];
-    led_state_t br[LEDS_COUNT];
-    alarm_t alr[ALARMS_COUNT];
-    uint8_t crc;
-};
-
-const uint16_t SSTATE_LENGTH = sizeof(SystemState_t);
 
 struct event_t {
     buttonstate_t state;
@@ -207,18 +182,5 @@ struct notify_t{
         alarm_t alarm;
     };
 };
-
-static uint8_t crc8(uint8_t *buffer, uint16_t size) {
-  uint8_t crc = 0;
-  for (uint16_t i = 0; i < size; i++) {
-    uint8_t data = buffer[i];
-    for (uint8_t j = 8; j > 0; j--) {
-      crc = ((crc ^ data) & 1) ? (crc >> 1) ^ 0x8C : (crc >> 1);
-      data >>= 1;
-    }
-  }
-  return crc;
-}
-
 
 #endif

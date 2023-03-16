@@ -40,7 +40,6 @@ protected:
     void cleanup() override;
     void setup() override;
     void loop() override;
-    String printTime();
     int32_t last_sync;
     boolean fast_time_interval; 
     QueueHandle_t que;

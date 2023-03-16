@@ -6,18 +6,22 @@
 #include <HardwareSerial.h>
 #include "Settings.h"
 
-const ledc_timer_t TIMER_NUM = LEDC_TIMER_2;
+const ledc_timer_t TIMER_NUM = LEDC_TIMER_3;
 const ledc_mode_t SPEED_MODE = LEDC_LOW_SPEED_MODE;
 //enum blinkmode_t { BLINK_OFF, BLINK_ON, BLINK_TOGGLE, BLINK_05HZ, BLINK_1HZ, BLINK_2HZ, BLINK_4HZ, BLINK_FADEIN, BLINK_FADEOUT, BLINK_FADEINOUT, BLINK_SUNRAISE,BLINK_SUNSET };
 
 
 class Led {
 public:
-   Led(uint8_t pin, uint8_t level, ledc_channel_t channel);
+   Led(uint8_t pin, bool level, ledc_channel_t channel, esp_timer_handle_t timer);
   ~Led();
 
-  
-  
+  operator bool() {
+    return _timer != NULL;
+  }
+  void operator=(blinkmode_t value) {
+    setMode(value);
+  }
 
   int32_t getValue() const {
     return _value;
@@ -38,7 +42,7 @@ public:
     return _mode;
   }
 
-  uint8_t getLevel() const{
+  bool getLevel() const{
     return _level;
   }
 
@@ -48,27 +52,18 @@ public:
   
   void setMode(blinkmode_t mode);
 
-  ledc_channel_t getChannel(){
+  ledc_channel_t getChannel() const {
     return _channel;
-  }
-
-uint8_t getBrightness(){
-    return _brightness;
-  }
-
-  void setBrightness(uint8_t b){
-    _brightness=b;
   }
 
 protected:
     uint8_t _pin;
-    uint8_t _level;
+    bool _level;
     blinkmode_t _mode;
+  
     ledc_channel_t _channel;
     volatile int32_t _value;
-    //esp_timer_handle_t _timer;
-    uint8_t _brightness;
-    //uint8_t _curr_brightness;
+    esp_timer_handle_t _timer;
   
 };
 #endif

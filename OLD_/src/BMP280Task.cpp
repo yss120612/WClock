@@ -26,7 +26,6 @@ void BMP280Task::loop(){
     switch (nt.title)
     {
     case 67:
-    #ifdef DEBUGG
      Serial.print(F("Temperature = "));
     Serial.print(bmp->readTemperature());
     Serial.println(" *C");
@@ -40,7 +39,7 @@ void BMP280Task::loop(){
     Serial.println(" m");
 
     Serial.println();
-    #endif
+
     break;
     }
   }

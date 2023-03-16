@@ -11,22 +11,11 @@ void MEMTask::cleanup()
 {
 }
 
-void MEMTask::read_state()
-{
-	read(0, (uint8_t *)&sstate, sizeof(sstate));
-		Serial.printf("Version1=%d Version2=%d\n",VER,sstate.version);
-
-	if (VER!=sstate.version)
-	{
-		
-		sstate.relay1 = 0;
-		sstate.relay2 = 0;
-		sstate.relay3 = 0;
-		sstate.relay4 = 0;
-		sstate.br1 = 0;
-		sstate.br2 = 0;
-		sstate.br3 = 0;
-		for (uint8_t i = 0; i < ALARMS_COUNT; i++)
+void MEMTask::reset_memory(){
+uint8_t i;
+		for(i=0;i<RELAYS_COUNT;i++) sstate.rel[i] = false;
+		for(i=0;i<LEDS_COUNT;i++) {sstate.br[i].value = 0;sstate.br[i].stste=BLINK_OFF;}
+		for (i = 0; i < ALARMS_COUNT; i++)
 		{
 			sstate.alr[i].action = 0;
 			sstate.alr[i].period = ONCE_ALARM;
@@ -37,43 +26,85 @@ void MEMTask::read_state()
 		}
 		sstate.version = VER;
 		write_state();
+}
+
+void MEMTask::read_state()
+{
+	read(0, (uint8_t *)&sstate, sizeof(sstate));
+	uint8_t crc=crc8((uint8_t *)&sstate,sizeof(sstate));
+
+	if (crc!=0)//second attempt to read
+	{
+		read(0, (uint8_t *)&sstate, sizeof(sstate));
+		crc=crc8((uint8_t *)&sstate,sizeof(sstate));
 	}
-	Serial.printf("version=%d rel1=%d rel2=%d rel3=%d rel4=%d br1=%d br1=%d br1=%d\n",sstate.version,sstate.relay1,sstate.relay2,sstate.relay3,sstate.relay4,sstate.br1,sstate.br2,sstate.br3);
-	for (uint8_t ii = 0; ii < ALARMS_COUNT; ii++)
-		{
-			Serial.printf("idx=%d active=%d %d:%d Period=%d Wday=%d Action=%d \n",ii,sstate.alr[ii].active, sstate.alr[ii].hour,sstate.alr[ii].minute,sstate.alr[ii].period, sstate.alr[ii].wday,sstate.alr[ii].action);
-		}
+
+	#ifdef DEBUGG
+	if (crc!=0)	Serial.println("BAD CRC!!!");
+	// Serial.print("SState length=");
+	// Serial.println(sizeof(sstate));
+	#endif
+			
+
+	if (VER!=sstate.version || crc!=0)
+	{
+		reset_memory();
+	}
 }
 
 void MEMTask::write_state()
 {
+	sstate.crc=crc8((uint8_t *)&sstate, sizeof(sstate)-1);
 	write(0, (uint8_t *)&sstate, sizeof(sstate));
 }
 
 void MEMTask::loop()
 {
-
-
 	uint32_t command;
-
+	event_t ev;
+	notify_t nt;
 	if (xTaskNotifyWait(0, 0, &command, portMAX_DELAY))
+	//if (xTaskNotifyWait(0, 0, &command, pdMS_TO_TICKS(1000)))
 	{
-		notify_t nt;
+		
 		memcpy(&nt,&command,sizeof(command));
+		
 		switch (nt.title)
 		{
-
-		case 1:
-			//read(addr, &value, sizeof(value));
-			//event_t ev;
-			//ev.state = MEM_EVENT;
-			//ev.button = addr;
-			//ev.count = value;
-			//xQueueSend(que, &ev, portMAX_DELAY);
-			break;
-		case 2:
-			//write(addr, &value, sizeof(value));
-			break;
+		
+	
+		case 10:	
+		case 11:
+		case 12:
+		case 13:
+		sstate.rel[nt.title-10]=nt.packet.value;
+		#ifdef DEBUGG
+		Serial.print("Relay");
+        Serial.print(nt.title-10);
+        Serial.print(" set ");
+        Serial.println(nt.packet.value);
+		#endif
+		write_state();
+		//xTaskNotifyStateClear(NULL);
+		
+		break;
+		case 20:	
+		case 21:
+		case 22:
+		sstate.br[nt.title-20].stste=(blinkmode_t)nt.packet.var;
+		sstate.br[nt.title-20].value=nt.packet.value;
+		#ifdef DEBUGG
+		Serial.print("Leds band=");
+        Serial.print(nt.title-20);
+        Serial.print(" brightness is ");
+        Serial.print(nt.packet.value);
+		Serial.print(" mode is ");
+        Serial.println(nt.packet.var);
+		#endif
+		write_state();
+		//xTaskNotifyStateClear(NULL);
+		
+		break;
 		case 100:	
 		case 101:	
 		case 102:	
@@ -85,13 +116,15 @@ void MEMTask::loop()
 		case 108:	
 		case 109:	
 		sstate.alr[nt.title-100]=nt.alarm;
-		Serial.printf("alarm to save active=%d %d:%d Period=%d Wday=%d Action=%d \n",nt.alarm.active, nt.alarm.hour,nt.alarm.minute,nt.alarm.period, nt.alarm.wday,nt.alarm.action);
 		write_state();
 		break;
-		case 200:
-	   		xMessageBufferSend(alarm_mess, &sstate.alr[0], ALARM_LENGTH, portMAX_DELAY);
+		case 199:
+	   		xMessageBufferSend(web_mess, &sstate, SSTATE_LENGTH, portMAX_DELAY);
 			break;
-		case 201:
+		case 200:
+	   		xMessageBufferSend(alarm_mess, &sstate, SSTATE_LENGTH, portMAX_DELAY);
+			break;
+		case 201://reset alarms
 		for (uint8_t i = 0; i < ALARMS_COUNT; i++)
 			{
 			sstate.alr[i].action = 0;
@@ -102,8 +135,14 @@ void MEMTask::loop()
 			sstate.alr[i].wday = 0;
 			}
 			write_state();
-	   		xMessageBufferSend(alarm_mess, &sstate.alr[0], ALARM_LENGTH, portMAX_DELAY);
+	   		xMessageBufferSend(alarm_mess, &sstate, SSTATE_LENGTH, portMAX_DELAY);
 			break;	
+			case 202://reset all
+	   		 reset_memory();
+			 xMessageBufferSend(alarm_mess, &sstate, SSTATE_LENGTH, portMAX_DELAY);
+			break;
+			
+
 		}
 	}
 }
@@ -111,54 +150,62 @@ void MEMTask::loop()
 void MEMTask::read(uint16_t index, uint8_t *buf, uint16_t len)
 {
 	index += AT24C32_OFFSET;
-	Wire.beginTransmission(AT24C32_ADDRESS);
-	Wire.write((index >> 8) & 0x0F);
-	Wire.write(index & 0xFF);
-	if (Wire.endTransmission() == 0)
-	{
-		while (len > 0)
-		{
-			uint8_t l;
+	index &= 0x0FFF;
+	uint16_t idx=0;
+	uint8_t count=0;
+	//Serial.println("Read ");
+	for (idx=0;idx<len;idx++){
+		if (((index+idx)%EEPROM_PAGE_SIZE==0) || idx==0){
+			 Wire.beginTransmission(AT24C32_ADDRESS);
+			 vTaskDelay(pdMS_TO_TICKS(EEPROM_WRITE_TIMEOUT));
+    		 Wire.write(((index+idx) >> 8) & 0x0F);
+			 Wire.write((index+idx) & 0xFF);
+    		 Wire.endTransmission();
+			 vTaskDelay(pdMS_TO_TICKS(EEPROM_WRITE_TIMEOUT));
+			 if (idx==0){
+				count=(index % EEPROM_PAGE_SIZE)==0?len>=EEPROM_PAGE_SIZE?EEPROM_PAGE_SIZE:len:EEPROM_PAGE_SIZE-(index % EEPROM_PAGE_SIZE);
+			 }
+			 else{
+				count=len-idx>=EEPROM_PAGE_SIZE?EEPROM_PAGE_SIZE:len-idx;
+			 }
+			 Wire.requestFrom(AT24C32_ADDRESS, count);	
+			 vTaskDelay(pdMS_TO_TICKS(EEPROM_WRITE_TIMEOUT));
+			}
+			
+			*buf = Wire.read();
+			 //Serial.printf("%d=%d; ",idx,*buf);
+			*buf ++;
+			
 
-			l = EEPROM_WORK_SIZE;
-			if (l > len)
-				l = len;
-			len -= l;
-			Wire.requestFrom(AT24C32_ADDRESS, l);
-			delay(EEPROM_WRITE_TIMEOUT);
-			while (l--)
-				*buf++ = Wire.read();
-		}
 	}
+	//Serial.println(".");
 }
 
 
 
 void MEMTask::write(uint16_t index, const uint8_t *buf, uint16_t len)
 {
-
 	index += AT24C32_OFFSET;
 	index &= 0x0FFF;
-	while (len > 0)
-	{
-		uint8_t l;
-
-		l = EEPROM_WORK_SIZE - (index % EEPROM_WORK_SIZE);
-		if (l > len)
-			l = len;
-		len -= l;
-		Wire.beginTransmission(AT24C32_ADDRESS);
-		Wire.write(index >> 8);
-		Wire.write(index & 0xFF);
-		while (l--)
-		{
-			Wire.write(*buf++);
-			++index;
-		}
-		delay(EEPROM_WRITE_TIMEOUT);
-		if (Wire.endTransmission() != 0)
-			break;
-		while (!Wire.requestFrom(AT24C32_ADDRESS, (uint8_t)1))
-			; // Polling EEPROM ready (write complete)
+	uint16_t idx=0;
+	//Serial.print("Write ");
+	for (idx=0;idx<len;idx++){
+		if (((index+idx)%EEPROM_PAGE_SIZE==0) || idx==0){
+			if (idx>0) {
+				Wire.endTransmission();
+				vTaskDelay(pdMS_TO_TICKS(EEPROM_WRITE_TIMEOUT));
+				}
+    		Wire.beginTransmission(AT24C32_ADDRESS);
+			vTaskDelay(pdMS_TO_TICKS(EEPROM_WRITE_TIMEOUT));
+    		Wire.write(((index+idx) >> 8) & 0x0F);
+			Wire.write((index+idx) & 0xFF);
+			vTaskDelay(pdMS_TO_TICKS(EEPROM_WRITE_TIMEOUT));
+			}
+			Wire.write(*buf);
+			 //Serial.printf("%d=%d; ",idx,*buf);
+			*buf ++;
 	}
+	//Serial.println(".");
+	Wire.endTransmission();
+	vTaskDelay(pdMS_TO_TICKS(EEPROM_WRITE_TIMEOUT));
 }

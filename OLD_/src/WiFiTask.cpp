@@ -23,9 +23,7 @@ void WiFiTask::wifiOnEvent(WiFiEvent_t event) {
     
     break;
     case WIFI_EVENT_STA_DISCONNECTED:
-    #ifdef DEBUGG
         Serial.println("WiFi Сonnection Loss!");
-        #endif
         xEventGroupClearBits(flg, FLAG_WIFI);
         //result=113;
         //xQueueSend(que,&result,portMAX_DELAY);
@@ -46,9 +44,7 @@ result.state=LED_EVENT;
 
     if (! WiFi.isConnected()) {
       WiFi.begin(WIFI_SSID, WIFI_PSWD);
-      #ifdef DEBUGG
       Serial.printf("Connecting to SSID \"%s\"...\n",WIFI_SSID);
-      #endif
       result.button=111;
       xQueueSend(que,&result,portMAX_DELAY);
 
@@ -59,12 +55,10 @@ result.state=LED_EVENT;
         }
       }
       if (WiFi.isConnected()) {
-      #ifdef DEBUGG
-      portENTER_CRITICAL(&_mutex);
+        portENTER_CRITICAL(&_mutex);
       Serial.print("Connected to WiFi with IP ");
       Serial.println(WiFi.localIP());
       portEXIT_CRITICAL(&_mutex);
-      #endif
       xEventGroupSetBits(flg, FLAG_WIFI);
       result.button=112;
       xQueueSend(que,&result,portMAX_DELAY);
@@ -73,9 +67,7 @@ result.state=LED_EVENT;
         //xQueueSend(que,&result,portMAX_DELAY);
         } else {
         WiFi.disconnect();
-        #ifdef DEBUGG
         Serial.println("Failed to connect to WiFi!");
-        #endif
         result.button=113;
         xEventGroupClearBits(flg, FLAG_WIFI);
         xQueueSend(que,&result,portMAX_DELAY);

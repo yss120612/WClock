@@ -7,7 +7,6 @@
 #include "HTTPTask.h"
 #include "RTCTask.h"
 #include "BMP280Task.h"
-#include "LedCubeTask.h"
 #include <Wire.h>
 #include <SPI.h>
 
@@ -22,12 +21,10 @@ HTTPTask * http;
 RTCTask * rtc;
 QueueHandle_t queue;
 BMP280Task * bmp280;
-LedCubeTask * tablo; 
 
 EventGroupHandle_t flags;
 MessageBufferHandle_t display_messages;
 MessageBufferHandle_t alarm_messages;
-MessageBufferHandle_t web_messages;
 
 
 
@@ -50,7 +47,7 @@ alarm_messages=xMessageBufferCreate(ALARM_LENGTH+4);//=length label
 
 
 
-mem= new MEMTask("Memory",2048,queue, alarm_messages,web_messages);  
+mem= new MEMTask("Memory",2048,queue,alarm_messages);  
 mem->resume();
 delay(100);
 irt= new IRTask("IR",2048,queue);  
@@ -73,9 +70,6 @@ wifi->resume();
 delay(100);
 http = new HTTPTask("http",8192,queue,flags);
 http->resume();
-delay(100);
-tablo = new LedCubeTask("tablo",4096,queue);
-tablo->resume();
 
 
 
