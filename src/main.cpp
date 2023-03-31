@@ -1,4 +1,4 @@
-#include <Arduino.h>
+ #include <Arduino.h>
 #include "MEMTask.h"
 #include "IRTask.h"
 #include "LEDTask.h"
@@ -46,7 +46,8 @@ queue= xQueueCreate(16,sizeof(event_t));
 
 flags=xEventGroupCreate();
 display_messages=xMessageBufferCreate(100);
-alarm_messages=xMessageBufferCreate(ALARM_LENGTH+4);//=length label
+alarm_messages=xMessageBufferCreate(SSTATE_LENGTH+4);//=length label
+web_messages=xMessageBufferCreate(100);//=length label
 
 
 
@@ -71,10 +72,10 @@ delay(100);
 wifi = new WiFiTask("WiFi",8192,queue,flags);
 wifi->resume();
 delay(100);
-http = new HTTPTask("http",8192,queue,flags);
+http = new HTTPTask("http",8192,queue,flags,web_messages);
 http->resume();
 delay(100);
-tablo = new LedCubeTask("tablo",4096,queue);
+tablo = new LedCubeTask("tablo",4096,queue,display_messages);
 tablo->resume();
 
 
@@ -148,7 +149,7 @@ switch(e.button){
      nt.title=1;
      nt.alarm=e.alarm;
      memcpy(&cmd,&nt,sizeof(cmd));
-     //Serial.printf("from web %d:%d Period=%d Wday=%d Action=%d \n",nt.alarm.hour,nt.alarm.minute,nt.alarm.period, nt.alarm.wday,nt.alarm.action);
+     Serial.printf("from web %d:%d Period=%d Wday=%d Action=%d \n",nt.alarm.hour,nt.alarm.minute,nt.alarm.period, nt.alarm.wday,nt.alarm.action);
      rtc->notify(cmd);
   break;
   case 2:
@@ -307,10 +308,16 @@ void mem_event(event_t e){
         nt.title=e.button;
         nt.alarm=e.alarm;
         memcpy(&command,&nt,sizeof(nt));
-        
-
         mem->notify(command);
    break;
+    case 199://request packed on WWW
+      nt.title=199;
+      nt.packet.var=0;
+      nt.packet.value=0;
+      memcpy(&command,&nt,sizeof(nt));
+      mem->notify(command);
+   break;
+
    case 200://request packed
       nt.title=200;
       nt.packet.var=0;

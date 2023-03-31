@@ -123,7 +123,7 @@ void MEMTask::loop()
 			break;
 		case 200:
 	   		xMessageBufferSend(alarm_mess, &sstate, SSTATE_LENGTH, portMAX_DELAY);
-			break;
+					break;
 		case 201://reset alarms
 		for (uint8_t i = 0; i < ALARMS_COUNT; i++)
 			{

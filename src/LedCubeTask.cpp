@@ -11,9 +11,20 @@ xTimerDelete(_timer, 0);
 void LedCubeTask::setup(){
 init(MAX_CS_PIN);
 begin();
-_timer = xTimerCreate("CubeTimer", pdMS_TO_TICKS(50), pdTRUE, static_cast<void *>(this), onTick);
-printStr(0,0,"Huinya");
-//scroll("ASDFGHJKL:;",300);
+_timer = xTimerCreate("CubeTimer", pdMS_TO_TICKS(1000), pdTRUE, static_cast<void *>(this), onTick);
+watch[0].x=3;  watch[0].y=8-FONT_HEIGHT;
+watch[1].x=9;  watch[1].y=8-FONT_HEIGHT;
+watch[2].x=15; watch[2].y=8-FONT_HEIGHT;
+watch[3].x=18; watch[3].y=8-FONT_HEIGHT;
+watch[4].x=24; watch[4].y=8-FONT_HEIGHT;
+cmode=WATCH_MODE;
+xTimerStart(_timer,pdMS_TO_TICKS(1000));
+//_clock = xTimerCreate("ClockTimer", pdMS_TO_TICKS(1000), pdTRUE, static_cast<void *>(this), onClockTick);
+//printClock(12,46);
+//printStr(0,0,"008800");
+//scroll2center("!XEX!", 100);
+//char  aaa[] ={0XCF,0XF0,0XE8,0XE2,0XE5,0XF2,0X2C,0X20,0XC2,0XE0,0XE4,0XE8,0XEA,0X21,0X00};
+//scroll(aaa,200);
 //drawPattern(5,0,10,7,0b01010101);
 //clear();
 //setPixel(0,0,true);
@@ -22,25 +33,29 @@ printStr(0,0,"Huinya");
 // _bits[1]=0b10000000;
 // _bits[2]=0b00000001;
 // _bits[22]=0x1 << 2 & 4;
-static const uint8_t PROGRESS[] PROGMEM = {
-    0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x50, 0x20, 0x40, 0x00, 0x00, 0x00, 0x00,
-    0x54, 0x24, 0x48, 0x10, 0x60, 0x00, 0x00,
-    0x55, 0x25, 0x4A, 0x12, 0x64, 0x18, 0x60,
-  };
-static const uint8_t POINT[] PROGMEM = {
-    0x33, 0x33, 
-    0x00, 0x00
-  };
+// static const uint8_t PROGRESS[] PROGMEM = {
+//     0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+//     0x50, 0x20, 0x40, 0x00, 0x00, 0x00, 0x00,
+//     0x54, 0x24, 0x48, 0x10, 0x60, 0x00, 0x00,
+//     0x55, 0x25, 0x4A, 0x12, 0x64, 0x18, 0x60,
+//   };
+// static const uint8_t POINT[] PROGMEM = {
+//     0x33, 0x33, 0x0C,
+//     0x00, 0x00, 0x00
+//   };
 
-animate(WIDTH - 4, 2, 2, 6, 2, POINT, 1000);
-repaint();
+//animate(WIDTH - 4, 2, 3, 6, 2, POINT, 1000);
+//repaint();
 setBrightness(1);
 };
 
 
 void LedCubeTask::loop(){
-vTaskDelay(pdTICKS_TO_MS(10));
+  event_t nt;
+  if (xMessageBufferReceive(messages,&nt,sizeof(event_t),portMAX_DELAY)){
+     printClock(nt.alarm.hour,nt.alarm.minute);
+  }
+  //vTaskDelay(100);
 };
 
 
@@ -56,8 +71,9 @@ void LedCubeTask::init(uint8_t pin) {
 
 void LedCubeTask::begin(uint8_t bright) {
   memset(_bits, 0, sizeof(_bits));
+  //memset(_xybits, 0, sizeof(_xybits));
   _bright = bright & 0x0F;
-  //_updating = 0;
+  _updating = 0;
   for (uint8_t i = 1; i <= 8; ++i) {
     sendCommand(i, 0);
   }
@@ -77,7 +93,8 @@ void LedCubeTask::end() {
 
 void LedCubeTask::clear() {
   memset(_bits, 0, sizeof(_bits));
-  //if (! _updating)
+  //memset(_xybits, 0, sizeof(_xybits));
+  if (! _updating)
     repaint();
 }
 
@@ -147,6 +164,21 @@ void LedCubeTask::drawPattern(uint8_t x, uint8_t y, uint8_t w, uint8_t h, uint8_
     endUpdate();
   }
 }
+void LedCubeTask::fillRect(uint8_t x, uint8_t y, uint8_t w, uint8_t h,bool what) {
+  if ((x < WIDTH) && (y < HEIGHT)) {
+    beginUpdate();
+    if (x + w > WIDTH)
+      w = WIDTH - x;
+    if (y + h > HEIGHT)
+      h = HEIGHT - y;
+    for (uint8_t i = 0; i < w; ++i) {
+      for (uint8_t j = 0; j < h; ++j) {
+        setPixel(x + i, y + j, what?1:0);
+      }
+    }
+    endUpdate();
+  }
+}
 
 //x   pattern[0]
 //x+1 pattern[1]
@@ -175,6 +207,9 @@ void LedCubeTask::printChar(uint8_t x, uint8_t y, char c) {
   drawPattern(x, y, charWidth(c), FONT_HEIGHT, charPattern(c));
 }
 
+void LedCubeTask::printChar(element_t el) {
+  drawPattern(el.x, el.y, charWidth(el.lett), FONT_HEIGHT, charPattern(el.lett));
+}
 
 void LedCubeTask::printStr(uint8_t x, uint8_t y, const char *str) {
   beginUpdate();
@@ -188,18 +223,129 @@ void LedCubeTask::printStr(uint8_t x, uint8_t y, const char *str) {
   endUpdate();
 }
 
+void LedCubeTask::printClock(uint8_t hour, uint8_t min) {
+  
+  char str[6];
+  snprintf(str, sizeof(str), "%02d:%02d", hour,min);
+  watch[0].lett=str[0];printChar(watch[0]);
+  watch[1].lett=str[1];printChar(watch[1]);
+  watch[2].lett=str[2];printChar(watch[2]);
+  watch[3].lett=str[3];printChar(watch[3]);
+  watch[4].lett=str[4];printChar(watch[4]);
+  //uint8_t w = strWidth(str);
+  //printStr((WIDTH-w)/2,8-FONT_HEIGHT,str);
+}
+
+void LedCubeTask::scrollDigits(char * newtime, uint32_t tempo, skind_t kind){
+  uint8_t x,y,w,h,n=0;
+  
+  if (newtime[0]!=watch[0].lett) {
+    x=watch[0].x;
+    y=watch[0].y;
+    watch[0].lett=newtime[0];
+    watch[1].lett=newtime[1];
+    watch[3].lett=newtime[3];
+    n=4;
+  }else if(newtime[1]!=watch[1].lett){
+    x=watch[1].x;
+    y=watch[1].y;
+    watch[1].lett=newtime[1];
+    watch[3].lett=newtime[3];
+    n=3;
+  } else if(newtime[3]!=watch[3].lett){
+    x=watch[3].x;
+    y=watch[3].y;
+    watch[3].lett=newtime[3];
+    n=2;
+  } else if(newtime[4]!=watch[4].lett){
+    x=watch[4].x;
+    y=watch[4].y;
+    n=1;
+  }
+  else{
+    return;
+  }
+  w=watch[4].x+charWidth(watch[4].lett)-x;
+  h=watch[4].y+FONT_HEIGHT-y;
+  watch[4].lett=newtime[4];
+  //w*=2;
+  _scrolling = (scrolling_t*)malloc(sizeof(scrolling_t) + w*2);
+  memset(_scrolling->canvas, 0, w*2);
+  for (uint8_t x0=0;x0<w;x0++)//копируем область экрана
+   for (uint8_t y0=0;y0<h;y0++)
+   _scrolling->canvas[x0] |= ((getPixel(x+x0,y+y0)?1:0)<<(y+y0) & 1<<(y+y0));
+
+   const uint8_t *pattern;
+   char c;
+   for (uint8_t t=4;t>0;t--){
+   if (n!=t) continue;
+   c = watch[4-n].lett;
+   pattern = charPattern(c);
+        for (uint8_t i = 0; i < charWidth(c); ++i) {
+          _scrolling->canvas[w+watch[4-n].x+i] = pgm_read_byte(&pattern[i]);
+        }
+        
+        if (n==3){
+         pattern = charPattern(watch[2].lett);
+         for (uint8_t i = 0; i < charWidth(watch[2].lett); ++i) {
+          _scrolling->canvas[w+watch[2].x+i] = pgm_read_byte(&pattern[i]);
+        }   
+  }
+       
+   n--;     
+   }
+}
+
+void LedCubeTask::scroll2center(const char *str, uint32_t tempo) {
+  uint16_t w,sw;
+
+  noScroll();
+  sw = strWidth(str);
+  if (sw>WIDTH) sw=WIDTH;
+  w=WIDTH*2;
+  
+  _scrolling = (scrolling_t*)malloc(sizeof(scrolling_t) + w);
+  memset(_scrolling->canvas, 0, w);
+  _scrolling->width = w;
+  //drawPattern(WIDTH-1,0,1,8,0xFF);//если надо смывать вертикальной чертой
+  for (uint8_t x=0;x<WIDTH;x++)//копируем экран
+   for (uint8_t y=0;y<HEIGHT;y++)
+   _scrolling->canvas[x] |= ((getPixel(x,y)?1:0)<<y & 1<<y);
+  
+  uint16_t x0=WIDTH+(WIDTH-sw)/2;
+  _scrolling->pos=WIDTH;
+
+  while (pgm_read_byte(str)) {
+        const uint8_t *pattern;
+        char c;
+        c = pgm_read_byte(str++);
+        pattern = charPattern(c);
+        for (uint8_t i = 0; i < charWidth(c); ++i) {
+          _scrolling->canvas[x0++] = pgm_read_byte(&pattern[i]);
+        }
+        x0 += FONT_GAP;
+      }
+
+      _anim = false;
+     xTimerChangePeriod(_timer,pdMS_TO_TICKS(tempo),0); 
+     //xTimerStart(_timer, 0);
+}
+  
+
+
 
 void LedCubeTask::scroll(const char *str, uint32_t tempo) {
   uint16_t w;
 
   noScroll();
   w = strWidth(str);
-  if (w <= WIDTH) {
+  if (w <= 1) {
     beginUpdate();
     clear();
     printStr((WIDTH - w) / 2, 0, str);
     endUpdate();
   } else {
+    w+=WIDTH;
     _scrolling = (scrolling_t*)malloc(sizeof(scrolling_t) + w);
     if (_scrolling) {
       memset(_scrolling->canvas, 0, w);
@@ -216,12 +362,10 @@ void LedCubeTask::scroll(const char *str, uint32_t tempo) {
         }
         w += FONT_GAP;
       }
-      drawPattern(0, 0, WIDTH, FONT_HEIGHT, _scrolling->canvas);
-      _scrolling->pos = -SCROLL_ANCHOR + 1;
       _anim = false;
-     // _ticker.attach_ms(tempo, &LedCubeTask::onTick, this);
-     xTimerChangePeriod(_timer,pdMS_TO_TICKS(tempo),0); 
-     xTimerStart(_timer, 0);
+      _scrolling->pos=STOPLESS;
+      xTimerChangePeriod(_timer,pdMS_TO_TICKS(tempo),0); 
+     //xTimerStart(_timer, 0);
     }
   }
 }
@@ -337,20 +481,52 @@ const uint8_t * LedCubeTask::charPattern(char c) {
 
 void LedCubeTask::onMyTick()
 {
+switch(cmode){
+  case NONE_MODE:
+  xTimerStop(_timer,0);
+  return;
+  case WATCH_MODE:
+  if (getPixel(watch[2].x,watch[2].y+2)){
+    fillRect(watch[2].x,watch[2].y,charWidth(':'),FONT_HEIGHT,false);
+
+  }else{
+    printChar(watch[2]);
+  }
+  return;
+  break;
+}
 if (_anim) {
     drawPattern(_animating->x, _animating->y, _animating->w, _animating->h, &_animating->patterns[_animating->frame * _animating->w]);
     if (++_animating->frame >= _animating->frames)
       _animating->frame = 0;
   } else {
-    drawPattern(0, 0, WIDTH, FONT_HEIGHT, &_scrolling->canvas[_scrolling->pos<0?0:
-                                                                  _scrolling->pos>_scrolling->width - WIDTH ?
-                                                                  _scrolling->width - WIDTH :
-                                                                  _scrolling->pos
-                                                                  ]);
-    _scrolling->pos++;                                                                  
+    drawPattern(0, 0, WIDTH, FONT_HEIGHT, _scrolling->canvas);
+    uint8_t buff=_scrolling->canvas[0];
+    memmove(&_scrolling->canvas[0],&_scrolling->canvas[1],_scrolling->width-1);
+    
+    if (_scrolling->pos!=STOPLESS){
+      _scrolling->canvas[_scrolling->width-1]=0;
+      _scrolling->pos--;
+      if (_scrolling->pos<0) 
+      {
+      noScroll();
+      //delay(3000);
+      //esp_restart();
+      }
+    }else{
+      //Serial.println(_scrolling->pos);
+     _scrolling->canvas[_scrolling->width-1]=buff; 
+    }
+    
+    // drawPattern(0, 0, WIDTH, FONT_HEIGHT, &_scrolling->canvas[_scrolling->pos<0?0:
+    //                                                               _scrolling->pos>_scrolling->width - WIDTH ?
+    //                                                               _scrolling->width - WIDTH :
+    //                                                               _scrolling->pos
+    //                                                               ]);
+    //_scrolling->pos++;                                                                  
     //Serial.println(_scrolling->pos);                                                              
-    if (_scrolling->pos >= _scrolling->width - WIDTH + SCROLL_ANCHOR)
-      _scrolling->pos  = -SCROLL_ANCHOR;
+    //if (_scrolling->pos >= _scrolling->width - WIDTH + SCROLL_ANCHOR)
+    //  _scrolling->pos  = -SCROLL_ANCHOR;
   }
 }
 
@@ -379,7 +555,7 @@ const uint8_t LedCubeTask::FONT[] PROGMEM = {
   0x60, 0x60, // '.'
   0x20, 0x10, 0x08, 0x04, 0x02, // '/'
   0x3E, 0x51, 0x49, 0x45, 0x3E, // '0'
-  0x04, 0x42, 0x7F, 0x40, // '1'
+  0x00, 0x04, 0x42, 0x7F, 0x40, // '1'
   0x62, 0x51, 0x49, 0x49, 0x46, // '2'
   0x22, 0x41, 0x49, 0x49, 0x36, // '3'
   0x18, 0x14, 0x12, 0x7F, 0x10, // '4'
@@ -457,7 +633,6 @@ const uint8_t LedCubeTask::FONT[] PROGMEM = {
   0x7F, // '|'
   0x41, 0x36, 0x08, // '}'
   0x08, 0x04, 0x04, 0x08, 0x04, // '~'
-
   0x7C, 0x55, 0x54, 0x55, 0x44, // 'Ё'
   0x02, 0x05, 0x02, // '°'
   0x38, 0x55, 0x54, 0x55, 0x18, // 'ё'
@@ -546,7 +721,7 @@ const uint8_t LedCubeTask::CHAR_WIDTH[] PROGMEM = {
   2, // '.'
   5, // '/'
   5, // '0'
-  4, // '1'
+  5, // '1'
   5, // '2'
   5, // '3'
   5, // '4'

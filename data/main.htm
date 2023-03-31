@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Система автоматики Yss</title>
+    <title>Система стеллажа Yss</title>
     <meta name="description" content="Версия 0.2">
     <meta name="author" content="Yss">
 	<link href="/css/bootstrap.min.css" type="text/css" rel="stylesheet" />
@@ -44,15 +44,16 @@
 		
 		<div class="panel panel-default col-md-offset-1">
 			<div class="panel-body">		
+				<form>
 				<div class="col-md-4">
-					<form>
+					
 						<h2>1. Релейный блок</h2>
-						<!-- <div class="form-check form-switch">
-							<input class="form-check-input" name="REL1" type="checkbox" value="" id="REL1">
+						<div class="form-check form-switch">
+							<input class="form-check-input" type="checkbox" value="" name="REL1" id="REL1">
 							<label class="form-check-label" for="REL1">
 							  Рэле 1
 							</label>
-						  </div> -->
+						  </div>
 						  <div class="form-check form-switch">
 							<input class="form-check-input" name="REL2" type="checkbox" value="" id="REL2">
 							<label class="form-check-label" for="REL2">
@@ -65,7 +66,14 @@
 							  Рэле 3
 							</label>
 						  </div>
-						  <div class="input-group mb-3">			
+						  <div class="form-check form-switch">
+							<input class="form-check-input" type="checkbox" value="" name="REL4" id="REL4">
+							<label class="form-check-label" for="REL4">
+							  Рэле 4
+							</label>
+						  </div>
+						</div>
+						<div class="input-group mb-3">			
 						<label class="input-group-text" for="time">Время</label>  
 						<input class="time form-control" id="time" type="text" value="" />
 						</div>
@@ -124,20 +132,75 @@
 
 
 						<div class="input-group mb-3">		
-							<a type="button" class="btn btn-lg btn-success" id="REL4"><i class="fa fa-bed fa-2x pull-left">Sleep</i></a>
+							<a type="button" class="btn btn-lg btn-success" id="BTN5"><i class="fa fa-bed fa-2x pull-left">Sleep</i></a>
 						</div>
 					</form>
-				</div>
-
+				
+					<div class="col-md-4" id="LOGSHOW">
+						
+					</div>
 				<div class="col-md-4">
 					<form>
-						<h2>2. Лампа</h2>
-						<label for="LIGHT_CW" class="form-label">Свет CW</label>
-						<input type="range" class="form-range" min="0" max="256" step="32" id="LIGHT_CW">
-						<label for="LIGHT_NW" class="form-label">Свет NW</label>
-						<input type="range" class="form-range" min="0" max="256" step="32" id="LIGHT_NW">
-						<label for="LIGHT_WW" class="form-label">Свет WW</label>
-						<input type="range" class="form-range" min="0" max="256" step="32" id="LIGHT_WW">
+						<h2>2. Цвет подсветки.</h2>
+						<div class="input-group mb-3 alert alert-danger">
+						<label for="LIGHT_R" class="form-label">Red</label>
+						<input type="range" class="form-range" min="0" max="256" step="32" id="LIGHT_R">
+						<label class="input-group-text" for="LEDMODE_R">Mode RED</label>
+    					<select id="LEDMODE_R" name="LEDMODE_R" class="form-select" aria-label="Mode red">
+								<option value="0">BLINK_OFF</option>
+								<option value="1">BLINK_ON</option>
+								<option value="2">BLINK_TOGGLE</option>
+								<option value="3">BLINK_05HZ</option>
+								<option value="4">BLINK_1HZ</option>
+								<option value="5">BLINK_2HZ</option>
+								<option value="6">BLINK_4HZ</option>
+								<option value="7">BLINK_FADEIN</option>
+								<option value="8">BLINK_FADEOUT</option>
+								<option value="9">BLINK_FADEINOUT</option>
+								<option value="10">BLINK_SUNRAISE</option>
+								<option value="11">BLINK_SUNSET</option>
+							</select>
+						</div>
+
+						<div class="input-group mb-3  alert alert-success">
+						<label for="LIGHT_G" class="form-label">Green</label>
+						<input type="range" class="form-range" min="0" max="256" step="32" id="LIGHT_G">
+						<label class="input-group-text" for="LEDMODE_G">Mode GREEN</label>
+    					<select id="LEDMODE_G" name="LEDMODE_G" class="form-select" aria-label="Mode green">
+								<option value="0">BLINK_OFF</option>
+								<option value="1">BLINK_ON</option>
+								<option value="2">BLINK_TOGGLE</option>
+								<option value="3">BLINK_05HZ</option>
+								<option value="4">BLINK_1HZ</option>
+								<option value="5">BLINK_2HZ</option>
+								<option value="6">BLINK_4HZ</option>
+								<option value="7">BLINK_FADEIN</option>
+								<option value="8">BLINK_FADEOUT</option>
+								<option value="9">BLINK_FADEINOUT</option>
+								<option value="10">BLINK_SUNRAISE</option>
+								<option value="11">BLINK_SUNSET</option>
+							</select>
+						</div>	
+
+						<div class="input-group mb-3  alert alert-info">
+						<label for="LIGHT_B" class="form-label">Blue</label>
+						<input type="range" class="form-range" min="0" max="256" step="32" id="LIGHT_B">
+						<label class="input-group-text" for="LEDMODE_B">Mode BLUE</label>
+    					<select id="LEDMODE_B" name="LEDMODE_B" class="form-select" aria-label="Mode blue">
+								<option value="0">BLINK_OFF</option>
+								<option value="1">BLINK_ON</option>
+								<option value="2">BLINK_TOGGLE</option>
+								<option value="3">BLINK_05HZ</option>
+								<option value="4">BLINK_1HZ</option>
+								<option value="5">BLINK_2HZ</option>
+								<option value="6">BLINK_4HZ</option>
+								<option value="7">BLINK_FADEIN</option>
+								<option value="8">BLINK_FADEOUT</option>
+								<option value="9">BLINK_FADEINOUT</option>
+								<option value="10">BLINK_SUNRAISE</option>
+								<option value="11">BLINK_SUNSET</option>
+							</select>
+						</div>
 					</form>
 				</div>
 
@@ -266,6 +329,18 @@
             });
 
 
+			$('#REL1').on('input',function(){  
+			$.ajax({  
+                    type: "POST",  
+                    url: "/post",  
+                    data: "page=main&REL1="+$('#REL1').prop("checked"),  
+                    success: function(html){  
+                    }  
+			}); 
+                return false;  
+            });  
+
+
 			$('#REL2').on('input',function(){  
 			$.ajax({  
                     type: "POST",  
@@ -289,11 +364,11 @@
                 return false;  
 			});  
 			
-			$('#REL4').on('click',function(){  
+			$('#REL4').on('input',function(){  
 			$.ajax({  
                     type: "POST",  
                     url: "/post",  
-                    data: "page=main&REL4=true",  
+                    data: "page=main&REL4="+$('#REL4').prop("checked"),  
                     success: function(html){  
                     }  
 			}); 
@@ -314,38 +389,84 @@
 			
 
 
-			$('#LIGHT_CW').on('change',function(){  
+			$('#LIGHT_R').on('change',function(){  
 			$.ajax({  
                     type: "POST",  
                     url: "/post",  
-                    data: "page=main&LIGHT_CW="+($('#LIGHT_CW').prop("value")>255?255:$('#LIGHT_CW').prop("value")),  
+                    data: "page=main&LIGHT_R="+($('#LIGHT_R').prop("value")>255?255:$('#LIGHT_R').prop("value")),  
                     success: function(html){  
                     }  
 			}); 
                 return false;  
 			});  
 
-			$('#LIGHT_NW').on('change',function(){  
+			$('#LIGHT_G').on('change',function(){  
 			$.ajax({  
                     type: "POST",  
                     url: "/post",  
-                    data: "page=main&LIGHT_NW="+($('#LIGHT_NW').prop("value")>255?255:$('#LIGHT_NW').prop("value")),  
+                    data: "page=main&LIGHT_G="+($('#LIGHT_G').prop("value")>255?255:$('#LIGHT_G').prop("value")),  
                     success: function(html){  
                     }  
 			}); 
                 return false;  
 			});  
 
-			$('#LIGHT_WW').on('change',function(){  
+			$('#LIGHT_B').on('change',function(){  
 			$.ajax({  
                     type: "POST",  
                     url: "/post",  
-                    data: "page=main&LIGHT_WW="+($('#LIGHT_WW').prop("value")>255?255:$('#LIGHT_WW').prop("value")),  
+                    data: "page=main&LIGHT_B="+($('#LIGHT_B').prop("value")>255?255:$('#LIGHT_B').prop("value")),  
                     success: function(html){  
                     }  
 			}); 
                 return false;  
 			});  
+
+
+			$('#LIGHT_B').on('change',function(){  
+			$.ajax({  
+                    type: "POST",  
+                    url: "/post",  
+                    data: "page=main&LIGHT_B="+($('#LIGHT_B').prop("value")>255?255:$('#LIGHT_B').prop("value")),  
+                    success: function(html){  
+                    }  
+			}); 
+                return false;  
+			});  
+			
+			$('#LEDMODE_R').on('change',function(){  
+			$.ajax({  
+                    type: "POST",  
+                    url: "/post",  
+                    data: "page=main&LEDMODE_R="+$('#LEDMODE_R').prop("value"),  
+                    success: function(html){  
+                    }  
+			}); 
+                return false;  
+			});  
+
+			$('#LEDMODE_G').on('change',function(){  
+			$.ajax({  
+                    type: "POST",  
+                    url: "/post",  
+                    data: "page=main&LEDMODE_G="+$('#LEDMODE_G').prop("value"),  
+                    success: function(html){  
+                    }  
+			}); 
+                return false;  
+			});  
+
+			$('#LEDMODE_B').on('change',function(){  
+			$.ajax({  
+                    type: "POST",  
+                    url: "/post",  
+                    data: "page=main&LEDMODE_B="+$('#LEDMODE_B').prop("value"),  
+                    success: function(html){  
+                    }  
+			}); 
+                return false;  
+			});  
+
 
 	});
 	
@@ -360,10 +481,14 @@
 			$('#REL1').prop('checked', data['REL1']==1);
 			$('#REL2').prop('checked', data['REL2']==1);
 			$('#REL3').prop('checked', data['REL3']==1);
-			$('#LIGHT_CW').prop('value', data['LIGHT_CW']);
-			$('#LIGHT_NW').prop('value', data['LIGHT_NW']);
-			$('#LIGHT_WW').prop('value', data['LIGHT_WW']);
-			
+			$('#REL4').prop('checked', data['REL4']==1);
+			$('#LOGSHOW').html("LOG HERE:"+JSON.stringify(data,null,'<br>'));
+			$('#LIGHT_R').prop('value', data['LIGHT_R']);
+			$('#LEDMODE_R').prop('value', data['LEDMODE_R']);
+			$('#LIGHT_G').prop('value', data['LIGHT_G']);
+			$('#LEDMODE_G').prop('value', data['LEDMODE_G']);
+			$('#LIGHT_B').prop('value', data['LIGHT_B']);
+			$('#LEDMODE_B').prop('value', data['LEDMODE_B']);
 
 		});
 		setTimeout('process()',2000);

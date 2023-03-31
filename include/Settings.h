@@ -1,6 +1,7 @@
 #ifndef __SETTINGS__
 #define __SETTINGS__
 #include <driver/ledc.h>
+#define DEBUGG
 
 //#include <variant>
 
@@ -22,7 +23,7 @@ const uint8_t band_pins[]={GPIO_NUM_33,GPIO_NUM_32,0,0};
 enum blinkmode_t { BLINK_OFF, BLINK_ON, BLINK_TOGGLE, BLINK_05HZ, BLINK_1HZ, BLINK_2HZ, BLINK_4HZ, BLINK_FADEIN, BLINK_FADEOUT, BLINK_FADEINOUT, BLINK_SUNRAISE,BLINK_SUNSET };
 const ledc_channel_t channels[]={LEDC_CHANNEL_0,LEDC_CHANNEL_1,LEDC_CHANNEL_2,LEDC_CHANNEL_3};
 enum buttonstate_t : uint8_t { NONE_EVENT, BTN_CLICK, BTN_LONGCLICK, PULT_BUTTON, WEB_EVENT, MEM_EVENT,DISP_EVENT, LED_EVENT,ENCODER_EVENT,RTC_EVENT };
-enum period_t : uint8_t {NONE_ALARM, ONCE_ALARM, EVERYHOUR_ALARM, EVERYDAY_ALARM,  WDAY_ALARM, HDAY_ALARM, WD7_ALARM,  WD1_ALARM,WD2_ALARM,WD3_ALARM,WD4_ALARM,WD5_ALARM,WD6_ALARM };
+enum period_t : uint8_t {NONE_ALARM, ONCE_ALARM, EVERYHOUR_ALARM, EVERYDAY_ALARM,  WDAY_ALARM, HDAY_ALARM, WD7_ALARM,  WD1_ALARM,WD2_ALARM,WD3_ALARM,WD4_ALARM,WD5_ALARM,WD6_ALARM,EVERYMINUTE_ALARM};
 static const char dayofweek[] = "SunMonTueWedThuFriSat";
 
 enum flags_t : uint8_t { FLAG_WIFI = 1, FLAG_MQTT = 2 };
@@ -79,6 +80,10 @@ const uint16_t ALARMS_OFFSET=512;
 
 static void getNext(alarm_t &at){
         switch (at.period) {
+            case EVERYMINUTE_ALARM:
+            at.minute=at.minute<59?at.minute+1:0;
+            at.active=true;
+            break;
             case ONCE_ALARM:
             at.active=false;
             break;

@@ -10,7 +10,7 @@
 
 class HTTPTask: public Task{
 public:
-HTTPTask(const char *name, uint32_t stack,QueueHandle_t q,EventGroupHandle_t f):Task(name, stack){que=q;flg=f;}
+HTTPTask(const char *name, uint32_t stack,QueueHandle_t q,EventGroupHandle_t f,MessageBufferHandle_t web_m):Task(name, stack){que=q;flg=f;web_mess=web_m;}
 
 protected:
 void cleanup() override;
@@ -23,12 +23,6 @@ void handleFile(String path,String type, AsyncWebServerRequest *request);
 void handleNotFound(AsyncWebServerRequest * request);
 void handleA2W(AsyncWebServerRequest * request);
 void handleW2A(AsyncWebServerRequest * request);
-// void handleBootstrapCss(AsyncWebServerRequest * request);
-// void handleRadioCss(AsyncWebServerRequest * request);
-// void handleFontAwesomeCss(AsyncWebServerRequest * request);
-// void handleFontAwesomeFontsWoff(AsyncWebServerRequest * request);
-// void handleJqueryJs(AsyncWebServerRequest * request);
-// void handleBootstrapJs(AsyncWebServerRequest * request);
 void handleUpd(AsyncWebServerRequest * request);
 void handleUpdate(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final);
 void handleSpiffs(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final);
@@ -38,6 +32,7 @@ String getI2Cdevices();
 QueueHandle_t que;
 EventGroupHandle_t flg;
 AsyncWebServer * server;
+MessageBufferHandle_t web_mess;
 };
 #endif
 
