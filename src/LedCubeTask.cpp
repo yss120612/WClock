@@ -277,7 +277,7 @@ void LedCubeTask::scrollDigits(char * newtime, uint32_t tempo, skind_t kind){
   h=watch[4].y+FONT_HEIGHT-y;
   watch[4].lett=newtime[4];
   //w*=2;
-  Serial.printf("x=%d y=%d w=%d h=%d n=%d\n",x,y,w,h,n);
+  //Serial.printf("x=%d y=%d w=%d h=%d n=%d\n",x,y,w,h,n);
   
   //_scrolling.canvas = (uint8_t *) malloc(w*2);
   _scrolling.canvas = new uint8_t [w*2];
@@ -404,7 +404,7 @@ void LedCubeTask::noScroll() {
   xTimerStop(_timer, 0);
   if (_scrolling.canvas) {
     //free(_scrolling.canvas);
-    delete [] _scrolling.canvas;
+    delete _scrolling.canvas;
     _scrolling.canvas = nullptr;
   }
 }

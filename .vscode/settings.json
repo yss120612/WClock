@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "*.tcc": "cpp",
-        "cstdio": "cpp"
+        "cstdio": "cpp",
+        "new": "cpp"
     }
 }
