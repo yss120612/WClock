@@ -14,14 +14,14 @@
 #define FONT_GAP 1
 #define STOPLESS 0x7FFF
 
-enum clockmode_t : uint8_t {NONE_MODE, WATCH_MODE, DAY_MODE};
+enum clockmode_t : uint8_t {NONE_MODE, WATCH_MODE,SCROLLCHAR_MODE, DAY_MODE};
 enum skind_t : uint8_t {SCROLL_UP, SCROLL_DOWN, SCROLL_LEFT, SCROLL_RIGHT};
 
 class LedCubeTask : public Task{
 public:
   
   //MAX7219() : _ticker(Ticker()), _scrolling(nullptr) {}
-  LedCubeTask(const char *name, uint32_t stack,QueueHandle_t q,MessageBufferHandle_t mess):Task(name,stack) {_scrolling=NULL;que=q;messages=mess;}
+  LedCubeTask(const char *name, uint32_t stack,QueueHandle_t q,MessageBufferHandle_t mess):Task(name,stack) {_scrolling.canvas= nullptr;que=q;messages=mess;}
   ~LedCubeTask() {
     end();
   }
@@ -70,7 +70,7 @@ struct __attribute__((__packed__)) element_t {
   void endTransaction();
   void sendCommand(uint8_t cmd, uint8_t value, uint8_t target = 0xFF);
   char charNormalize(char c);
-  const uint8_t *charPattern(char c);
+  const uint8_t * charPattern(char c);
 
   static void onTick(TimerHandle_t tm);
   void onMyTick();
@@ -78,25 +78,27 @@ struct __attribute__((__packed__)) element_t {
   //void onMyClockTick();
 
   struct __attribute__((__packed__)) scrolling_t {
+    uint8_t x, y, w, h;
     uint16_t width;
     int16_t pos;
-    uint8_t canvas[0];
+    uint8_t * canvas;
   };
-  struct __attribute__((__packed__)) animating_t {
-    uint8_t x, y, w, h;
-    uint8_t frames, frame;
-    uint8_t patterns[0];
-    clockmode_t cmode;
-  };
+  // struct __attribute__((__packed__)) animating_t {
+  //   uint8_t x, y, w, h;
+  //   uint16_t frames;
+  //   uint16_t frame;
+  //   uint8_t * patterns;
+  // };
 
  
 
   uint8_t _bits[WIDTH];
   
-  union {
-    scrolling_t *_scrolling;
-    animating_t *_animating;
-  };
+  // union {
+  //   scrolling_t _scrolling;
+  //   animating_t _animating;
+  // };
+  scrolling_t _scrolling;
   uint8_t _bright : 4;
   uint8_t _updating : 3;
   bool _anim : 1;
@@ -110,6 +112,6 @@ struct __attribute__((__packed__)) element_t {
   //SPIClass _SPI;
   QueueHandle_t que;
   MessageBufferHandle_t messages;
-  
+  skind_t skind;
 };
 #endif
