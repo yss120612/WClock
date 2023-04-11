@@ -43,6 +43,7 @@ void RTCTask::alarm(alarm_t &a){
   switch (a.period)
   {
     case  EVERYMINUTE_ALARM:
+    dt=dt+TimeSpan(0,0,0,5);
     rtc->setAlarm1(dt,DS3231_A1_Second);  
     //Serial.print("alarm--");
     break;
@@ -85,6 +86,10 @@ if (idx==ALARMS_COUNT-1){
     dt=rtc->now();
     ev.alarm.hour=dt.hour();
     ev.alarm.minute=dt.minute();
+    ev.alarm.wday=dt.dayOfTheWeek();
+    ev.alarm.period=(period_t)dt.month();
+    ev.count=dt.day();
+    ev.state=(buttonstate_t)(dt.year()-2000);
     xMessageBufferSend(disp_mess, &ev, sizeof(event_t), portMAX_DELAY);
     idx=refreshAlarms();
   }

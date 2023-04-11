@@ -8,6 +8,7 @@
 #include "RTCTask.h"
 #include "BMP280Task.h"
 #include "LedCubeTask.h"
+#include "WeatherTask.h"
 #include <Wire.h>
 #include <SPI.h>
 
@@ -23,6 +24,7 @@ RTCTask * rtc;
 QueueHandle_t queue;
 BMP280Task * bmp280;
 LedCubeTask * tablo; 
+WeatherTask * weather;
 
 EventGroupHandle_t flags;
 MessageBufferHandle_t display_messages;
@@ -72,8 +74,11 @@ delay(100);
 wifi = new WiFiTask("WiFi",8192,queue,flags);
 wifi->resume();
 delay(100);
-http = new HTTPTask("http",8192,queue,flags,web_messages);
+http = new HTTPTask("http",4096,queue,flags,web_messages);
 http->resume();
+delay(100);
+weather = new WeatherTask("weather",4096,queue,flags,display_messages);
+weather->resume();
 delay(100);
 tablo = new LedCubeTask("tablo",4096,queue,display_messages);
 tablo->resume();

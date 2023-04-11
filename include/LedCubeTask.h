@@ -14,8 +14,8 @@
 #define FONT_GAP 1
 #define STOPLESS 0x7FFF
 
-enum clockmode_t : uint8_t {NONE_MODE, WATCH_MODE,SCROLLCHAR_MODE, DAY_MODE};
-enum skind_t : uint8_t {SCROLL_UP, SCROLL_DOWN, SCROLL_LEFT, SCROLL_RIGHT};
+enum clockmode_t : uint8_t {NONE_MODE, WATCH_MODE,SCROLLCHAR_MODE, DAY_MODE,INFO_MODE};
+enum skind_t : uint8_t {SCROLL_UP, SCROLL_DOWN,SCROLL_OPEN,SCROLL_CLOSE, SCROLL_LEFT, SCROLL_RIGHT,SCROLL_RANDOM};
 
 class LedCubeTask : public Task{
 public:
@@ -105,6 +105,8 @@ struct __attribute__((__packed__)) element_t {
   element_t watch[5];
   static const uint8_t FONT[] PROGMEM;
   static const uint8_t CHAR_WIDTH[] PROGMEM;
+  static const char WEEKDAYS[7][3] PROGMEM;
+  static const char MONTH[12][9] PROGMEM;
   TimerHandle_t _timer;
   //TimerHandle_t _clock;
   uint8_t CS_PIN;
@@ -113,5 +115,13 @@ struct __attribute__((__packed__)) element_t {
   QueueHandle_t que;
   MessageBufferHandle_t messages;
   skind_t skind;
+  uint8_t second;
+  int8_t temp;
+  uint8_t hum;
+  uint16_t press;
+  uint8_t month;
+  uint8_t day;
+  uint8_t year;
+  uint8_t wday;
 };
 #endif

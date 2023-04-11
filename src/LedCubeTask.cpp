@@ -51,16 +51,35 @@ xTimerStart(_timer,pdMS_TO_TICKS(1000));
 
 //animate(WIDTH - 4, 2, 3, 6, 2, POINT, 1000);
 //repaint();
+second=0;
 setBrightness(1);
+srand(time(NULL));
+hum=0;
 };
 
 
 void LedCubeTask::loop(){
   event_t nt;
   if (xMessageBufferReceive(messages,&nt,sizeof(event_t),portMAX_DELAY)){
+    switch (nt.button)
+    {
+    case 1:
+     year=(uint8_t)nt.state;
+     month=(uint8_t)nt.alarm.period;
+     day=nt.count;
+     wday=nt.alarm.wday; 
      printClock(nt.alarm.hour,nt.alarm.minute);
+     second=5; 
+     break;
+     case 2:
+     hum=(nt.data>>24) & 0xFF;
+     temp=(nt.data>>16) & 0xFF;
+     press=nt.data & 0xFFFF; 
+     //Serial.printf("t=%d h=%d p=%d\n",temp,hum,press);
+     break;
+    }
   }
-  //vTaskDelay(100);
+  
 };
 
 
@@ -232,20 +251,16 @@ void LedCubeTask::printClock(uint8_t hour, uint8_t min) {
   
   char str[6];
   snprintf(str, sizeof(str), "%s%d:%02d",hour>9?"":"^",hour,min);
-  //watch[0].lett=str[0];printChar(watch[0]);
-  //watch[1].lett=str[1];printChar(watch[1]);
-  //watch[2].lett=str[2];printChar(watch[2]);
-  //watch[3].lett=str[3];printChar(watch[3]);
-  //watch[4].lett=str[4];printChar(watch[4]);
-  //uint8_t w = strWidth(str);
-  //printStr((WIDTH-w)/2,8-FONT_HEIGHT,str);
-  scrollDigits(str,pdMS_TO_TICKS(100),SCROLL_LEFT);
+  scrollDigits(str,pdMS_TO_TICKS(100),SCROLL_RANDOM);
 }
 
 void LedCubeTask::scrollDigits(char * newtime, uint32_t tempo, skind_t kind){
   uint8_t x,y,w,h,n=0;
-  noScroll();
+  if (kind==SCROLL_RANDOM) skind=(skind_t)(0 + rand() % (int(SCROLL_RIGHT) - 0 + 1));
+  else skind=kind;
   
+  noScroll();
+  if (newtime){
   if (newtime[0]!=watch[0].lett) {
     x=watch[0].x;
     y=watch[0].y;
@@ -272,30 +287,36 @@ void LedCubeTask::scrollDigits(char * newtime, uint32_t tempo, skind_t kind){
   else{
     return;
   }
-  
+  watch[4].lett=newtime[4];
+  } else{//newtime is null
+    x=watch[0].x;
+    y=watch[0].y;
+    n=4;  
+  }
   w=watch[4].x+charWidth(watch[4].lett)-x;
   h=watch[4].y+FONT_HEIGHT-y;
-  watch[4].lett=newtime[4];
   //w*=2;
   //Serial.printf("x=%d y=%d w=%d h=%d n=%d\n",x,y,w,h,n);
   
-  //_scrolling.canvas = (uint8_t *) malloc(w*2);
-  _scrolling.canvas = new uint8_t [w*2];
+  _scrolling.canvas = (uint8_t *) malloc(w*2);
+  //_scrolling.canvas = new uint8_t [w*2];
   // if (!_scrolling.canvas){
   //   //Serial.println("Error allocate memory");
   // }
   memset(_scrolling.canvas, 0, w*2);
-  _scrolling.pos=(kind<SCROLL_LEFT)?FONT_HEIGHT:w;
+  _scrolling.pos=(skind<SCROLL_OPEN)?HEIGHT:(skind<SCROLL_LEFT)?HEIGHT/2:w;
   _scrolling.x=x;
   _scrolling.y=y;
   _scrolling.w=w;
   _scrolling.h=h;
   _scrolling.width=w*2;
-  
-  for (uint8_t x0=0;x0<w;x0++)//копируем область экрана
-   for (uint8_t y0=0;y0<h;y0++)
-   _scrolling.canvas[x0] |= ((getPixel(x+x0,y+y0)?1:0)<<(y+y0) & 1<<(y+y0));
+  //Serial.printf("x=%d y=%d w=%d h=%d n=%d spos=%d\n",x,y,w,h,n,_scrolling.pos);
+  if (newtime) printChar(watch[2]);//restore :
 
+  for (uint8_t x0=0;x0<w;x0++)//копируем область экрана
+   for (uint8_t y0=0;y0<h;y0++){
+   _scrolling.canvas[x0] |= ((getPixel(x+x0,y+y0)?1:0)<<(y+y0) & 1<<(y+y0));
+   }
    const uint8_t *pattern;
    char c;
    
@@ -305,23 +326,22 @@ for (;n>=0;n--){
   pattern = charPattern(c);
   //Serial.println(c);
         for (uint8_t i = 0; i < charWidth(c); ++i) {
-          _scrolling.canvas[w+watch[4-n].x+i] = pgm_read_byte(&pattern[i]);
+          _scrolling.canvas[w+watch[4-n].x-x+i] = pgm_read_byte(&pattern[i]);
+          //Serial.println(w+watch[4-n].x-x+i);
         }
         
   if (n==3){
-         pattern = charPattern(watch[2].lett);
-         for (uint8_t i = 0; i < charWidth(watch[2].lett); ++i) {
-          _scrolling.canvas[w+watch[2].x+i] = pgm_read_byte(&pattern[i]);
+         c= watch[2].lett;
+         pattern = charPattern(c);
+         for (uint8_t i = 0; i < charWidth(c); ++i) {
+          _scrolling.canvas[w+watch[2].x-x+i] = pgm_read_byte(&pattern[i]);
         }   
   }
   if (n==0) break;         
   }
-   printChar(watch[2]);//restore :
-   cmode=SCROLLCHAR_MODE;
-   skind=kind;
-   //Serial.println("All ok");
-   xTimerChangePeriod(_timer,pdMS_TO_TICKS(tempo),0); 
    
+   cmode=SCROLLCHAR_MODE;
+   xTimerChangePeriod(_timer,pdMS_TO_TICKS(tempo),0); 
 }
 
 void LedCubeTask::scroll2center(const char *str, uint32_t tempo) {
@@ -374,11 +394,18 @@ void LedCubeTask::scroll(const char *str, uint32_t tempo) {
     endUpdate();
   } else {
     w+=WIDTH;
+    w+=1;
     _scrolling.canvas = (uint8_t*)malloc(w);
     
       memset(_scrolling.canvas, 0, w);
+   for (uint8_t x=0;x<WIDTH;x++)//копируем экран
+   for (uint8_t y=0;y<HEIGHT;y++)
+   _scrolling.canvas[x] |= ((getPixel(x,y)?1:0)<<y & 1<<y);
+
       _scrolling.width = w;
-      w = 0;
+      _scrolling.pos = w;
+
+      w = WIDTH;
       while (pgm_read_byte(str)) {
         const uint8_t *pattern;
         char c;
@@ -390,10 +417,11 @@ void LedCubeTask::scroll(const char *str, uint32_t tempo) {
         }
         w += FONT_GAP;
       
-      _anim = false;
-      _scrolling.pos=STOPLESS;
+      //_anim = false;
+      //_scrolling.pos=STOPLESS;
       xTimerChangePeriod(_timer,pdMS_TO_TICKS(tempo),0); 
      //xTimerStart(_timer, 0);
+
     }
   }
 }
@@ -405,7 +433,7 @@ void LedCubeTask::noScroll() {
   if (_scrolling.canvas) {
     //free(_scrolling.canvas);
     delete _scrolling.canvas;
-    _scrolling.canvas = nullptr;
+    _scrolling.canvas = NULL;
   }
 }
 
@@ -511,6 +539,8 @@ const uint8_t * LedCubeTask::charPattern(char c) {
 void LedCubeTask::onMyTick()
 {
   uint8_t buff;
+  uint8_t idx,val;
+  uint8_t a,b;
 switch(cmode){
   case NONE_MODE:
   xTimerStop(_timer,0);
@@ -522,14 +552,67 @@ switch(cmode){
   }else{
     printChar(watch[2]);
   }
+  if(second>=5) second++;
+  if (second==20){
+    if (hum!=0){
+    cmode=INFO_MODE;
+    char str[21];
+    snprintf(str, sizeof(str), "%s%d\xB0 %d%% %d mm.pc.",temp>0?"+":"",temp,hum,press*100/133);
+    scroll(str,50);
+    }
+  }else if (second==40){
+    char str[21];
+    snprintf(str, sizeof(str), "%s. %d %s %d",WEEKDAYS[wday>0?wday-1:6],day,MONTH[month-1],year+2000);
+    scroll(str,50);
+    cmode=INFO_MODE;
+  }
+
   return;
   break;
   case SCROLLCHAR_MODE:
   switch (skind){
-    case SCROLL_UP:
-    break;
     case SCROLL_DOWN:
+          drawPattern(_scrolling.x, _scrolling.y, _scrolling.w, _scrolling.h, _scrolling.canvas);
+      for (idx=0;idx<_scrolling.w;idx++){
+       _scrolling.canvas[_scrolling.w+idx]=((_scrolling.canvas[_scrolling.w+idx]<<1) & 0xFE) | ((_scrolling.canvas[_scrolling.w+idx]>>7) & 0x01);
+       _scrolling.canvas[idx]=((_scrolling.canvas[idx]<<1) & 0xFE)|((_scrolling.canvas[_scrolling.w+idx]) & 0x01);
+      }
     break;
+     case SCROLL_UP:
+      drawPattern(_scrolling.x, _scrolling.y, _scrolling.w, _scrolling.h, _scrolling.canvas);
+            for (idx=0;idx<_scrolling.w;idx++){
+       _scrolling.canvas[_scrolling.w+idx]=((_scrolling.canvas[_scrolling.w+idx]>>1) & 0x7F) | ((_scrolling.canvas[_scrolling.w+idx]<<7) & 0x80);
+       _scrolling.canvas[idx]=(_scrolling.canvas[idx]>>1 & 0x7F)|(_scrolling.canvas[_scrolling.w+idx] & 0x80);
+            }
+    break;
+
+    case SCROLL_OPEN:
+      drawPattern(_scrolling.x, _scrolling.y, _scrolling.w, _scrolling.h, _scrolling.canvas);
+      for (idx=0;idx<_scrolling.w;idx++){
+        b=_scrolling.canvas[_scrolling.w+idx];
+        b= (((b>>3) & 0x10) | ((b<<1) & 0xE0)) | (((b<<3) & 0x8) | ((b>>1) & 0x7));
+        _scrolling.canvas[_scrolling.w+idx]=b;
+        a=_scrolling.canvas[idx];
+        a= ((a<<1) & 0xE0 | b & 0x10 ) | ((a>>1)& 0x7 | b&0x8);
+        _scrolling.canvas[idx]=a;
+       //_scrolling.canvas[_scrolling.w+idx]=((_scrolling.canvas[_scrolling.w+idx]>>1) & 0x7F) | ((_scrolling.canvas[_scrolling.w+idx]<<7) & 0x80);
+       //_scrolling.canvas[idx]=((_scrolling.canvas[idx]>>1) & 0x7F)|(_scrolling.canvas[_scrolling.w+idx] & 0x80);
+      }
+    break;
+   case SCROLL_CLOSE:
+      drawPattern(_scrolling.x, _scrolling.y, _scrolling.w, _scrolling.h, _scrolling.canvas);
+      for (idx=0;idx<_scrolling.w;idx++){
+        b=_scrolling.canvas[_scrolling.w+idx];
+        b= (((b<<3) & 0x80) | ((b>>1) & 0x70)) | (((b>>3) & 0x1) | ((b<<1) & 0xE));
+        _scrolling.canvas[_scrolling.w+idx]=b;
+        a=_scrolling.canvas[idx];
+        a= ((a>>1) & 0x70 | b & 0x80 ) | ((a<<1)& 0x0E | b & 0x1);
+        _scrolling.canvas[idx]=a;
+       //_scrolling.canvas[_scrolling.w+idx]=((_scrolling.canvas[_scrolling.w+idx]>>1) & 0x7F) | ((_scrolling.canvas[_scrolling.w+idx]<<7) & 0x80);
+       //_scrolling.canvas[idx]=((_scrolling.canvas[idx]>>1) & 0x7F)|(_scrolling.canvas[_scrolling.w+idx] & 0x80);
+      }
+    break;
+
     case SCROLL_LEFT:
     drawPattern(_scrolling.x, _scrolling.y, _scrolling.w, _scrolling.h, _scrolling.canvas);
     buff=_scrolling.canvas[0];
@@ -541,20 +624,38 @@ switch(cmode){
     buff=_scrolling.canvas[_scrolling.width-1];
     memmove(&_scrolling.canvas[1],&_scrolling.canvas[0],_scrolling.width-1);
     _scrolling.canvas[0]=buff;
+    //Serial.println(_scrolling.pos);
     break;
   }
   
-   _scrolling.pos--;
+   //Serial.println(_scrolling.pos);
   
    if (_scrolling.pos==0){
       noScroll();
-      //Serial.println("Point 4");
       cmode=WATCH_MODE;
-      xTimerStart(_timer,pdMS_TO_TICKS(1000));
+      xTimerChangePeriod(_timer,pdMS_TO_TICKS(1000),0);
+      break;
     }
+  _scrolling.pos--;  
   //return;   
   break;
-  
+  case INFO_MODE:
+    drawPattern(0, 0, WIDTH, FONT_HEIGHT, _scrolling.canvas);
+    //buff=_scrolling.canvas[0];
+    memmove(&_scrolling.canvas[0],&_scrolling.canvas[1],_scrolling.width-1);
+    
+    //if (_scrolling.pos!=STOPLESS){
+     // _scrolling.canvas[_scrolling.width-1]=0;
+      
+      if (_scrolling.pos==0) 
+      {
+      noScroll();
+      //cmode=WATCH_MODE;
+      scrollDigits(NULL,100,SCROLL_RANDOM);
+      return;
+      }
+      _scrolling.pos--;
+  break;
 }
 return;
 if (_anim) {
@@ -598,6 +699,23 @@ void LedCubeTask::onTick(TimerHandle_t tm) {
   lct->onMyTick();  
 }
 
+ const char LedCubeTask::WEEKDAYS[7][3] PROGMEM = {
+        "\xCF\xED", "\xC2\xF2", "\xD1\xF0", "\xD7\xF2", "\xCF\xF2", "\xD1\xE1", "\xC2\xF1" // "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"
+      };
+const char LedCubeTask::MONTH[12][9] PROGMEM = {
+"\xFF\xED\xE2\xE0\xF0\xFF",
+"\xF4\xE5\xE2\xF0\xE0\xEB\xFF",
+"\xEC\xE0\xF0\xF2\xE0",
+"\xE0\xEF\xF0\xE5\xEB\xFF",
+"\xEC\xE0\xFF",
+"\xE8\xFE\xED\xFF",
+"\xE8\xFE\xEB\xFF",
+"\xE0\xE2\xE3\xF3\xF1\xF2\xE0",
+"\xF1\xE5\xED\xF2\xFF\xE1\xF0\xFF",
+"\xEE\xEA\xF2\xFF\xE1\xF0\xFF",
+"\xED\xEE\xFF\xE1\xF0\xFF",
+"\xE4\xE5\xEA\xE0\xE1\xF0\xFF"
+};
 
 const uint8_t LedCubeTask::FONT[] PROGMEM = {
   0x00, 0x00, 0x00, // ' '

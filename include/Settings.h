@@ -1,7 +1,7 @@
 #ifndef __SETTINGS__
 #define __SETTINGS__
 #include <driver/ledc.h>
-#define DEBUGG
+#define DEBUGG1
 
 //#include <variant>
 
@@ -224,6 +224,5 @@ static uint8_t crc8(uint8_t *buffer, uint16_t size) {
   }
   return crc;
 }
-
-
+#define WEATHER_INTERVAL 1000*60*10 //10 minutes
 #endif

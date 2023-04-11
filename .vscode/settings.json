@@ -2,6 +2,10 @@
     "files.associations": {
         "*.tcc": "cpp",
         "cstdio": "cpp",
-        "new": "cpp"
+        "new": "cpp",
+        "atomic": "cpp",
+        "cstdint": "cpp",
+        "random": "cpp",
+        "cmath": "cpp"
     }
 }
