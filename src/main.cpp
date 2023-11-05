@@ -1,11 +1,11 @@
  #include <Arduino.h>
-#include "MEMTask.h"
-#include "IRTask.h"
-#include "LEDTask.h"
-#include "ENCTask.h"
-#include "WiFiTask.h"
-#include "HTTPTask.h"
-#include "RTCTask.h"
+#include <MEMTask.h>
+#include <IRTask.h>
+#include <LEDTask.h>
+#include <ENCTask.h>
+#include <WiFiTask.h>
+#include "HTTP2Task.h"
+#include <RTCTask.h>
 #include "BMP280Task.h"
 #include "LedCubeTask.h"
 #include "WeatherTask.h"
@@ -14,12 +14,12 @@
 
 
 
-MEMTask * mem;
+MEMTask<SystemState_t> * mem;
 IRTask * irt;
 LEDTask * leds;
 ENCTask * enc;
 WiFiTask * wifi;
-HTTPTask * http;
+HTTP2Task * http;
 RTCTask * rtc;
 QueueHandle_t queue;
 BMP280Task * bmp280;
@@ -53,28 +53,31 @@ web_messages=xMessageBufferCreate(100);//=length label
 
 
 
-mem= new MEMTask("Memory",2048,queue, alarm_messages,web_messages);  
+mem=new MEMTask<SystemState_t>("MEM",2048,queue,reset_default,process_notify, alarm_messages,web_messages,VERSION,AT24C32_ADDRESS,AT24C32_OFFSET);
 mem->resume();
 delay(100);
-irt= new IRTask("IR",2048,queue);  
+irt= new IRTask("IR",2048,queue,IR_PIN,IR_DEVICE);  
 irt->resume();
 delay(100);
 rtc = new RTCTask("rtc",4096,flags,queue,display_messages,alarm_messages);
 rtc->resume();
+rtc->setNeedWatch();
+rtc->resetAlarms();
+rtc->init();
 delay(100);
 bmp280= new BMP280Task("BMP280",2048);  
 bmp280->resume();
 delay(100);
-leds = new LEDTask("Leds",3072,queue,LOW);
+leds = new LEDTask("Leds",3072,queue,band_pins,LOW);
 leds->resume();
 delay(100);
-enc = new ENCTask("Encoder",2048,queue,LOW);
-enc->resume();
+// enc = new ENCTask("Encoder",2048,queue,ENC_A,ENC_B,ENC_BTN,LOW);
+// enc->resume();
 delay(100);
-wifi = new WiFiTask("WiFi",8192,queue,flags);
+wifi = new WiFiTask("WiFi",4096,queue,flags);
 wifi->resume();
 delay(100);
-http = new HTTPTask("http",4096,queue,flags,web_messages);
+http = new HTTP2Task("http",4096,queue,flags,web_messages);
 http->resume();
 delay(100);
 weather = new WeatherTask("weather",4096,queue,flags,display_messages);
@@ -285,62 +288,88 @@ switch(e.button){
 }
 
 
-void mem_event(event_t e){
-  uint32_t command;
-  notify_t nt;
-  switch (e.button){
-   case 1:
-   break;     
-   case 2://write
-      nt.title=2;
-      nt.packet.var=e.count;
-      nt.packet.value=e.data;
-      memcpy(&nt,&command,sizeof(nt));
-      //command=makePacket(2,e.count,e.data);//command,value,address
-      
-      mem->notify(command);  
-   break; 
-   case 100:
-   case 101:
-   case 102:
-   case 103:
-   case 104:
-   case 105:
-   case 106:
-   case 107:
-   case 108:
-   case 109:
-        nt.title=e.button;
-        nt.alarm=e.alarm;
-        memcpy(&command,&nt,sizeof(nt));
-        mem->notify(command);
-   break;
-    case 199://request packed on WWW
-      nt.title=199;
-      nt.packet.var=0;
-      nt.packet.value=0;
-      memcpy(&command,&nt,sizeof(nt));
-      mem->notify(command);
-   break;
+void mem_event(event_t event){
+ notify_t notify;
+ switch (event.button)
+ {
+ case MEM_SAVE_00:  
+ case MEM_SAVE_01:
+ case MEM_SAVE_02:
+ case MEM_SAVE_03:
+ case MEM_SAVE_04:
+ case MEM_SAVE_05:
+ case MEM_SAVE_06:
+ case MEM_SAVE_07:
+ case MEM_SAVE_08:
+ case MEM_SAVE_09:
+ notify.title=event.button;
+ notify.alarm=event.alarm;
+ mem->notify(notify);
+ break;  
+//  case MEM_SAVE_10:
+//    notify.title=event.button;
+//    notify.packet.value=event.data;
+//    mem->notify(notify);
+//    break;
+//  case MEM_SAVE_11:
+//    notify.title=event.button;
+//    notify.packet.value=event.data;
+//    mem->notify(notify);
+//    break;
+//   case MEM_SAVE_12:
+//    notify.title=event.button;
+//    notify.packet.value=event.data;
+//    mem->notify(notify);
+//   break; 
+ 
+ case MEM_ASK_00:
+ case MEM_ASK_01:
+ case MEM_ASK_02:
+ case MEM_ASK_03:
+ case MEM_ASK_04:
+ case MEM_ASK_05:
+ case MEM_ASK_06:
+ case MEM_ASK_07:
+ case MEM_ASK_08:
+ case MEM_ASK_09:
+ case MEM_ASK_10:
+ case MEM_ASK_11:
+ case MEM_ASK_12:
+   notify.title=event.button;
+   mem->notify(notify);
+ break;
 
-   case 200://request packed
-      nt.title=200;
-      nt.packet.var=0;
-      nt.packet.value=0;
-      memcpy(&command,&nt,sizeof(nt));
-      mem->notify(command);
-   break;
-   case 201://reset and request packed
-      nt.title=201;
-      nt.packet.var=0;
-      nt.packet.value=0;
-      memcpy(&command,&nt,sizeof(nt));
-      mem->notify(command);
-   break;
-      
-    
-  }
-} 
+case MEM_READ_00:
+case MEM_READ_01:
+case MEM_READ_02:
+case MEM_READ_03:
+case MEM_READ_04:
+case MEM_READ_05:
+case MEM_READ_06:
+case MEM_READ_07:
+case MEM_READ_08:
+case MEM_READ_09:
+notify.title=ALARMSETFROMMEM;
+notify.alarm=event.alarm;
+rtc->notify(notify);
+break;
+case MEM_READ_10:
+ //notify.title=event.button;
+ //notify.packet.value=event.data;
+ //active_process->notify(notify);
+ break;
+case MEM_READ_11:
+case MEM_READ_12:
+ //notify.title=event.button;
+ //notify.packet.value=event.data;
+ //active_process->notify(notify);
+break;
+
+}
+ 
+}
+
+
 
 
 
